@@ -1,0 +1,142 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXFileReference section */
+		A14A365E185AD948007A76FD /* PyConnectCommon.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PyConnectCommon.cpp; sourceTree = "<group>"; };
+		A14A365F185AD948007A76FD /* PyConnectCommon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PyConnectCommon.h; sourceTree = "<group>"; };
+		A14A3660185AD948007A76FD /* PyConnectNetComm.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PyConnectNetComm.cpp; sourceTree = "<group>"; };
+		A14A3661185AD948007A76FD /* PyConnectNetComm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PyConnectNetComm.h; sourceTree = "<group>"; };
+		A14A3662185AD948007A76FD /* PyConnectObjComm.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PyConnectObjComm.cpp; sourceTree = "<group>"; };
+		A14A3663185AD948007A76FD /* PyConnectObjComm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PyConnectObjComm.h; sourceTree = "<group>"; };
+		A14A3664185AD948007A76FD /* PyConnectPyModule.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PyConnectPyModule.cpp; sourceTree = "<group>"; };
+		A14A3665185AD948007A76FD /* PyConnectStub.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PyConnectStub.cpp; sourceTree = "<group>"; };
+		A14A3666185AD948007A76FD /* PyConnectStub.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PyConnectStub.h; sourceTree = "<group>"; };
+		A14A3667185AD948007A76FD /* PyConnectWrapper.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PyConnectWrapper.cpp; sourceTree = "<group>"; };
+		A14A3668185AD948007A76FD /* PyConnectWrapper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PyConnectWrapper.h; sourceTree = "<group>"; };
+		A14A366A185AD95F007A76FD /* pyconnect_ext_setup.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = pyconnect_ext_setup.py; sourceTree = "<group>"; };
+		A14A366B185AE08D007A76FD /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+		A14E97D119E39A7B000DE4FC /* CMakeLists_NaoQi.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists_NaoQi.txt; sourceTree = "<group>"; };
+		A15B251319EF38C5000D9858 /* test_one.vcxproj */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = test_one.vcxproj; sourceTree = "<group>"; };
+		A15B251419EF38C5000D9858 /* test_one.vcxproj.user */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = test_one.vcxproj.user; sourceTree = "<group>"; };
+		A15B251519EF38C5000D9858 /* test_sample1.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = test_sample1.cpp; sourceTree = "<group>"; };
+		A15B251619EF38C5000D9858 /* test_sample1.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = test_sample1.hpp; sourceTree = "<group>"; };
+		A15B251719EF38C5000D9858 /* test_sample2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = test_sample2.cpp; sourceTree = "<group>"; };
+		A15B251819EF38C5000D9858 /* test_sample2.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = test_sample2.hpp; sourceTree = "<group>"; };
+		A15B251919EF38C5000D9858 /* test_script.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = test_script.py; sourceTree = "<group>"; };
+		A15B251A19EF38C5000D9858 /* test_two.vcxproj */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = test_two.vcxproj; sourceTree = "<group>"; };
+		A15B251B19EF38C5000D9858 /* test_two.vcxproj.user */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = test_two.vcxproj.user; sourceTree = "<group>"; };
+		A15B251C19EFC8B6000D9858 /* CMakeLists.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = CMakeLists.txt; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		A14A3656185AD863007A76FD = {
+			isa = PBXGroup;
+			children = (
+				A15B251019EF38C5000D9858 /* testing */,
+				A14A365D185AD938007A76FD /* PyConnect */,
+			);
+			sourceTree = "<group>";
+		};
+		A14A365D185AD938007A76FD /* PyConnect */ = {
+			isa = PBXGroup;
+			children = (
+				A14A3669185AD94B007A76FD /* Misc */,
+				A14A365E185AD948007A76FD /* PyConnectCommon.cpp */,
+				A14A365F185AD948007A76FD /* PyConnectCommon.h */,
+				A14A3660185AD948007A76FD /* PyConnectNetComm.cpp */,
+				A14A3661185AD948007A76FD /* PyConnectNetComm.h */,
+				A14A3662185AD948007A76FD /* PyConnectObjComm.cpp */,
+				A14A3663185AD948007A76FD /* PyConnectObjComm.h */,
+				A14A3664185AD948007A76FD /* PyConnectPyModule.cpp */,
+				A14A3665185AD948007A76FD /* PyConnectStub.cpp */,
+				A14A3666185AD948007A76FD /* PyConnectStub.h */,
+				A14A3667185AD948007A76FD /* PyConnectWrapper.cpp */,
+				A14A3668185AD948007A76FD /* PyConnectWrapper.h */,
+			);
+			name = PyConnect;
+			sourceTree = "<group>";
+		};
+		A14A3669185AD94B007A76FD /* Misc */ = {
+			isa = PBXGroup;
+			children = (
+				A14E97D119E39A7B000DE4FC /* CMakeLists_NaoQi.txt */,
+				A14A366B185AE08D007A76FD /* CMakeLists.txt */,
+				A14A366A185AD95F007A76FD /* pyconnect_ext_setup.py */,
+			);
+			name = Misc;
+			sourceTree = "<group>";
+		};
+		A15B251019EF38C5000D9858 /* testing */ = {
+			isa = PBXGroup;
+			children = (
+				A15B251C19EFC8B6000D9858 /* CMakeLists.txt */,
+				A15B251319EF38C5000D9858 /* test_one.vcxproj */,
+				A15B251419EF38C5000D9858 /* test_one.vcxproj.user */,
+				A15B251519EF38C5000D9858 /* test_sample1.cpp */,
+				A15B251619EF38C5000D9858 /* test_sample1.hpp */,
+				A15B251719EF38C5000D9858 /* test_sample2.cpp */,
+				A15B251819EF38C5000D9858 /* test_sample2.hpp */,
+				A15B251919EF38C5000D9858 /* test_script.py */,
+				A15B251A19EF38C5000D9858 /* test_two.vcxproj */,
+				A15B251B19EF38C5000D9858 /* test_two.vcxproj.user */,
+			);
+			path = testing;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXProject section */
+		A14A3657185AD863007A76FD /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0500;
+			};
+			buildConfigurationList = A14A365A185AD863007A76FD /* Build configuration list for PBXProject "pyconnect" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = A14A3656185AD863007A76FD;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		A14A365B185AD863007A76FD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Debug;
+		};
+		A14A365C185AD863007A76FD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A14A365A185AD863007A76FD /* Build configuration list for PBXProject "pyconnect" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A14A365B185AD863007A76FD /* Debug */,
+				A14A365C185AD863007A76FD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A14A3657185AD863007A76FD /* Project object */;
+}
