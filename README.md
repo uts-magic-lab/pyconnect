@@ -1,19 +1,19 @@
 # pyconnect
-A simple framework to integrate C++ programs with Python
+A lightweight framework to integrate C++ programs with Python
 
 ### IMPORTANT NOTE:
 This software is still considered as experimental. Please, do not use it in an environment that requires high level of reliability. I hope enough people find PyConnect useful and help me to improve it.
 
 ## Short Description
-PyConnect is a simple development framework to integrate existing C/C++ programs with Python. By re-declaring the existing functions/methods and variables in your program with macros provided by PyConnect, you can expose your program's functionality to Python interpreter, i.e. you now can write Python scripts for your program.
+PyConnect is a simple development framework to integrate existing C/C++ programs with Python. By re-declaring the existing functions/methods and variables in your program with macros provided by PyConnect, you can expose your program's functionality to a local/remote Python interpreter (through PyConnect extension module), i.e. you now can write Python scripts to control the execution of your program.
 
 PyConnect consists of three components:
 
-1. a wrapper library that contains macros you need to expose your program's functionality. You need to compile PyConnect wrapper library with your program.
+1. A wrapper library that contains macros you need to expose your program's functionality. You need to compile PyConnect wrapper library with your program.
 
-2. a Python extension module that talks to your PyConnect wrapped program.
+2. A Python extension module that talks to your PyConnect wrapped programs.
 
-3. an InterProcess Communication (IPC) layer for communication between the extension module and your PyConnect wrapped program. At this moment, only a TCP/IP based IPC layer is provide. You can write your own IPC layer with, for example, Windows's messaging system.
+3. A network/InterProcess Communication (IPC) layer for data communication between the extension module and your PyConnect wrapped program. At this moment, only a TCP/IP based IPC layer is provide. You can write your own IPC layer with, for example, Windows's messaging system.
 
 
 ## Key features of PyConnect
@@ -42,17 +42,17 @@ I have PyConnect wrapped programs running under Linux, OS X (powerpc and intel),
 3. Not suitable for any programs that have soft/hard realtime requirement.
 
 ### A brief history of PyConnect
-PyConnect was born out of a short project (only a design proposal was required for the project completion) for my master study at the University of Technology, Sydney. The initial goal was to embed a Python engine into Sony AIBO robot for the UTS robot soccer team: UTS Unleashed!. The plan was to take many advantages of Python for further robotic programming (quite few universities' robot soccer teams use Python, in fact). However, no one wants to reprogram many existing tried-and-proven C++ components (besides, there are performance issues for computational intensive tasks). Hence the idea to develop a wrapper for existing code. It soon becomes obvious to me, this idea can go beyond the confines of AIBO. 
+PyConnect was born out of a short project (only a design proposal was required for the project completion) for my master study at the University of Technology, Sydney. The initial goal was to embed a Python engine into Sony AIBO robot for the UTS robot soccer team: UTS Unleashed!. The plan was to take many advantages of Python for further robotic programming (quite few universities' robot soccer teams use Python, in fact). However, no one wants to reprogram many existing tried-and-proven C++ components (besides, there are performance issues for computational intensive tasks). Hence the idea was to develop a wrapper for existing code. It soon becomes clear to me, this idea can go beyond the confines of AIBO. 
 
 NOTE: The embedded Python engine (and related code) for AIBO is not included in the released package.
 
 ## Documentation
-Check pyconnect_intro.pdf file under doc directory. This document has not been fully updated since PyConnect initial version for AIBO robot. I will improve it over the time. Most stuff is still very relevant.
+Check pyconnect_intro.pdf file under doc directory.
 
 ### Compile PyConnect extension module
 #### Linux (debian)
 
-1. You need to install Python and Python-dev for C++ package first (i.e. `aptitude install python2.5 python2.5-dev`)
+1. You need to install Python and Python-dev for C++ package first (i.e. `aptitude install python python-dev`)
 
 2. Do `python pyconnect_ext_setup.py build`
 
@@ -73,9 +73,9 @@ Check pyconnect_intro.pdf file under doc directory. This document has not been f
 You can do this in two ways:
 
 1. First compile the wrapper library then link it with you program
-To compile the wrapper library, just do make wrapper. you need to link in `libPyConnectwrapper.a` file and make sure all PyConnect wrapper header files are available to your program (see below)
+To compile the wrapper library, just do `mkdir build;cmake ..;make`. You need to link in `libpyconnect_wrapper.a` library file under `lib` directory and make sure all PyConnect wrapper header files are available to your program (see below).
 
-2. Put the PyConnect wrapper library related source files with your source code together and modify your program `Makefile` to include PyConnect code with your compile. You need following PyConnect source files:
+2. Put the PyConnect wrapper library related source files with your source code together and modify your program `Makefile` or `CMakeLists.txt` to include PyConnect code with your compile. You need following PyConnect source files:
 
         PyConnectCommon.h
         PyConnectCommon.cpp
@@ -92,11 +92,11 @@ To compile the wrapper library, just do make wrapper. you need to link in `libPy
 In order to have PyConnect auto discovery work correctly, you need open TCP and UDP port 37251 on your host computer firewall.
 
 ## Example programs
-Two very simple programs are included under testing subdirectory. Use them as an important supplements to currently very limited documentation. You can compile them with `make test_one test_two`
+Two very simple programs are included under testing subdirectory. Use them as an important supplements to currently very limited documentation. You can compile them with `mkdir build;cmake ..;make`
 
 ## Program License
 
 PyConnect is released under GNU General Public License Version 3. A copy of the license is in LICENSE file. If PyConnect really works out nicely for you and you want to integrate it into your commercial product, please contact me directly.
 
 ## Contact details
-I can be reached at Wang.Xun@gmail.com.
+I can be reached at wang.xun@gmail.com.
