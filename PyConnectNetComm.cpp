@@ -18,14 +18,14 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef WIN_32
+#ifdef WIN32
 #pragma warning( disable: 4309 )
 #endif
 
 #ifdef PYTHON_SERVER
 #include "Python.h"
 #endif
-#ifndef WIN_32
+#ifndef WIN32
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -43,10 +43,13 @@
 #endif
 #include "PyConnectNetComm.h"
 
-#ifndef WIN_32
+#ifndef WIN32
 #define max( a, b ) (a > b) ? a : b
 #endif
 
+#ifdef WIN32
+typedef unsigned long in_addr_t;
+#endif
 namespace pyconnect {
 
 static int kTCPMSS = 1024;
@@ -81,11 +84,11 @@ PyConnectNetComm::PyConnectNetComm() :
 
 PyConnectNetComm::~PyConnectNetComm()
 {
-#ifdef WIN_32
+#ifdef WIN32
   WSACleanup();
 #endif
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   DeleteCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_destroy( &g_mutex );
@@ -105,9 +108,9 @@ void PyConnectNetComm::init( MessageProcessor * pMP, FDSetOwner * fdOwner )
   FD_ZERO( &masterFDSet_ );
 #ifdef PYTHON_SERVER
   enableNetComm();
-#ifndef WIN_32
+#ifndef WIN32
   enableIPCComm();
-#endif // !WIN_32
+#endif // !WIN32
 #endif
 }
 
@@ -124,7 +127,7 @@ bool PyConnectNetComm::initUDPListener()
   char ttl = 30;
   if (setsockopt( udpSocket_, IPPROTO_IP, IP_MULTICAST_TTL, (char *)&ttl, sizeof( ttl ) ) < 0) {
     ERROR_MSG( "PyConnectNetComm::initUDPListener: failed to set multicast TTL on UDP socket.\n" );
-#ifdef WIN_32
+#ifdef WIN32
     closesocket( udpSocket_ );
 #else
     close( udpSocket_ );
@@ -134,7 +137,7 @@ bool PyConnectNetComm::initUDPListener()
   }
   if (setsockopt( udpSocket_, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *)&multiCastReq_, sizeof( multiCastReq_ ) ) < 0) {
     ERROR_MSG( "PyConnectNetComm::initUDPListener: failed to join multicast group on UDP socket.\n" );
-#ifdef WIN_32
+#ifdef WIN32
     closesocket( udpSocket_ );
 #else
     close( udpSocket_ );
@@ -145,7 +148,7 @@ bool PyConnectNetComm::initUDPListener()
 #else // !USE_MULTICAST
   if (setsockopt( udpSocket_, SOL_SOCKET, SO_BROADCAST, (char *)&turnon, sizeof( turnon ) ) < 0) {
     ERROR_MSG( "PyConnectNetComm::initUDPListener: failed to enable broadcast on UDP socket.\n" );
-#ifdef WIN_32
+#ifdef WIN32
     closesocket( udpSocket_ );
 #else
     close( udpSocket_ );
@@ -157,7 +160,7 @@ bool PyConnectNetComm::initUDPListener()
 
   if (setsockopt( udpSocket_, SOL_SOCKET, SO_REUSEADDR, (char *)&turnon, sizeof( turnon ) ) < 0) {
     ERROR_MSG( "PyConnectNetComm::initUDPListener: failed to enable reuse address on UDP socket.\n" );
-#ifdef WIN_32
+#ifdef WIN32
     closesocket( udpSocket_ );
 #else
     close( udpSocket_ );
@@ -174,7 +177,7 @@ bool PyConnectNetComm::initUDPListener()
   
   if (bind( udpSocket_, (struct sockaddr *)&sAddr_, sizeof( sAddr_ ) ) < 0) {
     ERROR_MSG( "PyConnectNetComm::initUDPListener: unable to bind to network interface.\n" );
-#ifdef WIN_32
+#ifdef WIN32
     closesocket( udpSocket_ );
 #else
     close( udpSocket_ );
@@ -183,7 +186,7 @@ bool PyConnectNetComm::initUDPListener()
     return false;
   }
 
-#ifdef WIN_32
+#ifdef WIN32
   maxFD_++;
 #else
   maxFD_ = max( maxFD_, udpSocket_ );
@@ -205,7 +208,7 @@ bool PyConnectNetComm::initTCPListener()
     return false;
   }
 
-#ifndef WIN_32
+#ifndef WIN32
   int turnon = 1;
   if (setsockopt( tcpSocket_, SOL_SOCKET, SO_REUSEADDR, (char *)&turnon, sizeof( turnon ) ) < 0) {
     ERROR_MSG( "PyConnectNetComm::initTCPListener: failed to enable reuse addr option on TCP socket.\n" );
@@ -225,7 +228,7 @@ bool PyConnectNetComm::initTCPListener()
   
   if (bindRet < 0) {
     ERROR_MSG( "PyConnectNetComm::initTCPListener: unable to bind to network interface.\n" );
-#ifdef WIN_32
+#ifdef WIN32
     closesocket( tcpSocket_ );
 #else
     close( tcpSocket_ );
@@ -237,7 +240,7 @@ bool PyConnectNetComm::initTCPListener()
   
   if (listen( tcpSocket_, 5 ) < 0) {
     ERROR_MSG( "PyConnectNetComm::initTCPListener: unable to listen for incoming data.\n" );
-#ifdef WIN_32
+#ifdef WIN32
     closesocket( tcpSocket_ );
 #else
     close( tcpSocket_ );
@@ -246,7 +249,7 @@ bool PyConnectNetComm::initTCPListener()
   }
 
   INFO_MSG( "Listening on TCP port %d\n", ntohs( portInUse_ ) & 0xffff );
-#ifdef WIN_32
+#ifdef WIN32
   maxFD_++;
 #else
   maxFD_ = max( maxFD_, tcpSocket_ );
@@ -272,7 +275,7 @@ void PyConnectNetComm::processIncomingData( fd_set * readyFDSet )
 
   if (netCommEnabled_) {
     if (FD_ISSET( udpSocket_, readyFDSet )) {
-      int readLen = (int)recvfrom( udpSocket_, dgramBuffer_, PYCONNECT_UDP_BUFFER_SIZE,
+      int readLen = (int)recvfrom( udpSocket_, (char*)dgramBuffer_, PYCONNECT_UDP_BUFFER_SIZE,
         0, (sockaddr *)&cAddr, (socklen_t *)&cLen );
       if (readLen <= 0) {
         ERROR_MSG( "PyConnectNetComm::continuousProcessing: error accepting "
@@ -288,7 +291,7 @@ void PyConnectNetComm::processIncomingData( fd_set * readyFDSet )
       if (fd != INVALID_SOCKET) {
         addFdToClientList( fd, PyConnectNetComm::NETWORK, &cAddr );
       }
-#ifdef WIN_32
+#ifdef WIN32
       else if (errno != WSAECONNABORTED) {
 #else
       else if (errno != ECONNABORTED) {
@@ -304,7 +307,7 @@ void PyConnectNetComm::processIncomingData( fd_set * readyFDSet )
     if (fd != INVALID_SOCKET) {
       addFdToClientList( fd, PyConnectNetComm::LOCALIPC, &cAddr );
     }
-#ifdef WIN_32
+#ifdef WIN32
     else if (errno != WSAECONNABORTED) {
 #else
     else if (errno != ECONNABORTED) {
@@ -319,8 +322,8 @@ void PyConnectNetComm::processIncomingData( fd_set * readyFDSet )
   while (FDPtr) {
     fd = FDPtr->fd;
     if (FD_ISSET( fd, readyFDSet )) {
-#ifdef WIN_32
-      int readLen = recv( fd, clientDataBuffer_, kTCPMSS, 0 );
+#ifdef WIN32
+      int readLen = recv( fd, (char*)clientDataBuffer_, kTCPMSS, 0 );
 #else
       int readLen = (int)read( fd, clientDataBuffer_, kTCPMSS );
 #endif
@@ -339,7 +342,7 @@ void PyConnectNetComm::processIncomingData( fd_set * readyFDSet )
       }
       else {
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
         EnterCriticalSection( &g_criticalSection );
 #else
         pthread_mutex_lock( &g_mutex );
@@ -348,7 +351,7 @@ void PyConnectNetComm::processIncomingData( fd_set * readyFDSet )
         setLastUsedCommChannel( fd );
         //DEBUG_MSG( "receive data from fd %d\n", fd );
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
         LeaveCriticalSection( &g_criticalSection );
 #else
         pthread_mutex_unlock( &g_mutex );
@@ -518,7 +521,7 @@ void PyConnectNetComm::netBroadcastSend( const unsigned char * data, int size )
   }
 
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   EnterCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_lock( &g_mutex );
@@ -526,13 +529,13 @@ void PyConnectNetComm::netBroadcastSend( const unsigned char * data, int size )
 #endif
 
   if (netCommEnabled_) {
-    if (sendto( udpSocket_, outputData, outputLength, 0, (struct sockaddr *)&bcAddr_, sizeof( bcAddr_ ) ) < 0) {
+    if (sendto( udpSocket_, (char*)outputData, outputLength, 0, (struct sockaddr *)&bcAddr_, sizeof( bcAddr_ ) ) < 0) {
       ERROR_MSG( "PyConnectNetComm::broadcastSend: Error sending UDP broadcast packet.\n" );
     }
   }
 
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   LeaveCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_unlock( &g_mutex );
@@ -542,7 +545,7 @@ void PyConnectNetComm::netBroadcastSend( const unsigned char * data, int size )
 
 void PyConnectNetComm::localBroadcastSend( const unsigned char * data, int size )
 {
-#ifndef WIN_32
+#ifndef WIN32
   if (size <= 0) return;
 
   unsigned char * outputData = NULL;
@@ -583,7 +586,7 @@ void PyConnectNetComm::localBroadcastSend( const unsigned char * data, int size 
 #ifdef MULTI_THREAD
   pthread_mutex_unlock( &g_mutex );
 #endif
-#endif // !WIN_32
+#endif // !WIN32
 }
 
 void PyConnectNetComm::clientDataSend( const unsigned char * data, int size )
@@ -598,7 +601,7 @@ void PyConnectNetComm::clientDataSend( const unsigned char * data, int size )
   }
 
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   EnterCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_lock( &g_mutex );
@@ -619,15 +622,15 @@ void PyConnectNetComm::clientDataSend( const unsigned char * data, int size )
     *dataPtr = PYCONNECT_MSG_END;
     outputLength += (2 + sizeof( short ));
 
-#ifdef WIN_32
-    send( mysock, dispatchDataBuffer_, outputLength, 0 );
+#ifdef WIN32
+    send( mysock, (char*)dispatchDataBuffer_, outputLength, 0 );
 #else
     write( mysock, dispatchDataBuffer_, outputLength );
 #endif
   }
 
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   LeaveCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_unlock( &g_mutex );
@@ -682,7 +685,7 @@ void PyConnectNetComm::processUDPInput( unsigned char * recBuffer, int recBytes,
         }
       }
       else {
-#ifdef WIN_32
+#ifdef WIN32
         ERROR_MSG( "PyConnectNetComm::processUDPInput: Unable to "
           "create connection to %s:%d\n", inet_ntoa( cAddr.sin_addr ),
           ntohs( cAddr.sin_port ) );
@@ -709,7 +712,7 @@ bool PyConnectNetComm::createTCPTalker( struct sockaddr_in & cAddr )
     return false;
 
   if (connect( mySocket, (struct sockaddr *)&cAddr, sizeof( cAddr ) ) < 0) {
-#ifdef WIN_32
+#ifdef WIN32
     closesocket( mySocket );
 #else
     close( mySocket );
@@ -720,7 +723,7 @@ bool PyConnectNetComm::createTCPTalker( struct sockaddr_in & cAddr )
   return true;
 }
 
-#ifndef WIN_32
+#ifndef WIN32
 SOCKET_T PyConnectNetComm::findOrCreateIPCTalker( int procID )
 {
   SOCKET_T mySocket = findFdFromClientListByProcID( procID );
@@ -836,7 +839,7 @@ void PyConnectNetComm::consolidateIPCSockets()
   }
   deadSocketList.clear();
 }
-#endif // !WIN_32
+#endif // !WIN32
 
 void PyConnectNetComm::enableNetComm()
 {
@@ -846,7 +849,7 @@ void PyConnectNetComm::enableNetComm()
   sAddr_.sin_family = AF_INET;
   sAddr_.sin_addr.s_addr = INADDR_ANY;
   bcAddr_.sin_family = AF_INET;
-#ifdef WIN_32
+#ifdef WIN32
   bcAddr_.sin_addr.s_addr = inet_addr( PYCONNECT_BROADCAST_IP );
 #else
   inet_pton( AF_INET, PYCONNECT_BROADCAST_IP, &bcAddr_.sin_addr.s_addr );
@@ -864,7 +867,7 @@ void PyConnectNetComm::enableNetComm()
   if (!netCommEnabled_) {
     ERROR_MSG( "PyConnectNetComm::enableNetComm: Unable to initialise network "
               "communication layer!\n" );
-#ifdef WIN_32
+#ifdef WIN32
     WSACleanup();
 #endif
   }
@@ -876,7 +879,7 @@ void PyConnectNetComm::disableNetComm( bool onExit )
     return;
 
 #ifdef MULTI_THREAD // maybe little over zealous here
-#ifdef WIN_32
+#ifdef WIN32
   EnterCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_lock( &g_mutex );
@@ -891,7 +894,7 @@ void PyConnectNetComm::disableNetComm( bool onExit )
 
     objCommChannelShutdown( fdPtr->fd, !onExit );
 
-#ifdef WIN_32
+#ifdef WIN32
     shutdown( fdPtr->fd, SD_SEND );
     closesocket( fdPtr->fd );
 #else
@@ -902,7 +905,7 @@ void PyConnectNetComm::disableNetComm( bool onExit )
     }
     else {
       FD_CLR( fdPtr->fd, &masterFDSet_ );
-#ifdef WIN_32
+#ifdef WIN32
       maxFD_--; // not really used
 #endif
     }
@@ -915,7 +918,7 @@ void PyConnectNetComm::disableNetComm( bool onExit )
 #ifdef USE_MULTICAST
   setsockopt( udpSocket_, IPPROTO_IP, IP_DROP_MEMBERSHIP, (char *)&multiCastReq_, sizeof( multiCastReq_ ) );
 #endif
-#ifdef WIN_32
+#ifdef WIN32
   shutdown( udpSocket_, SD_SEND );
   closesocket( udpSocket_ );
   shutdown( tcpSocket_, SD_SEND );
@@ -933,20 +936,20 @@ void PyConnectNetComm::disableNetComm( bool onExit )
   dgramBuffer_ = NULL;
 
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   LeaveCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_unlock( &g_mutex );
 #endif
 #endif
 
-#ifdef WIN_32
+#ifdef WIN32
   WSACleanup();
 #endif
   netCommEnabled_ = false;
 }
 
-#ifndef WIN_32
+#ifndef WIN32
 void PyConnectNetComm::enableIPCComm()
 {
   if (IPCCommEnabled_)
@@ -971,7 +974,7 @@ void PyConnectNetComm::enableIPCComm()
   
   if (bind( domainSocket_, (struct sockaddr *)&dAddr, bindLen ) < 0) {
     ERROR_MSG( "PyConnectNetComm::enableIPCComm: unable to bind to local domain socket.\n" );
-#ifdef WIN_32
+#ifdef WIN32
 #else
     close( domainSocket_ );
 #endif
@@ -980,7 +983,7 @@ void PyConnectNetComm::enableIPCComm()
   
   if (listen( domainSocket_, 5 ) < 0) {
     ERROR_MSG( "PyConnectNetComm::enableIPCComm: unable to listen on local socket for incoming data.\n" );
-#ifdef WIN_32
+#ifdef WIN32
 #else
     close( domainSocket_ );
 #endif
@@ -991,7 +994,7 @@ void PyConnectNetComm::enableIPCComm()
   chmod( dAddr.sun_path, S_IRWXU | S_IRGRP | S_IWGRP );
   
   INFO_MSG( "Listening on local socket %s\n", dAddr.sun_path );
-#ifdef WIN_32
+#ifdef WIN32
   maxFD_++;
 #else
   maxFD_ = max( maxFD_, domainSocket_ );
@@ -1060,7 +1063,7 @@ void PyConnectNetComm::disableIPCComm( bool onExit )
 #endif
   IPCCommEnabled_ = false;
 }
-#endif  // !WIN_32
+#endif  // !WIN32
 
 void PyConnectNetComm::fini()
 {
@@ -1068,7 +1071,7 @@ void PyConnectNetComm::fini()
   
   if (netCommEnabled_)
     disableNetComm( true );
-#ifndef WIN_32
+#ifndef WIN32
   if (IPCCommEnabled_)
     disableIPCComm( true );
 #endif
@@ -1095,7 +1098,7 @@ CommObjectStat PyConnectNetComm::setBroadcastAddr( char * addr )
   return NOT_SUPPORTED;
 #else
   unsigned long saddr;
-#ifdef WIN_32
+#ifdef WIN32
   saddr = inet_addr( addr );
   if (saddr == INADDR_NONE &&
     strcmp( addr, "255.255.255.255" ))
@@ -1117,7 +1120,7 @@ CommObjectStat PyConnectNetComm::createTalker( char * host, int port )
   unsigned long saddr = 0;
   struct hostent * hostInfo = gethostbyname( host ); // try resolve name first
   if (!hostInfo) {
-#ifdef WIN_32
+#ifdef WIN32
     saddr = inet_addr( host );
     if (saddr == INADDR_NONE) {
 #else
@@ -1150,7 +1153,7 @@ CommObjectStat PyConnectNetComm::createTalker( char * host, int port )
 void PyConnectNetComm::addFdToClientList( const SOCKET_T & fd, FDDomain domain, struct sockaddr_in * cAddr, int procID )
 {
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   EnterCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_lock( &g_mutex );
@@ -1176,7 +1179,7 @@ void PyConnectNetComm::addFdToClientList( const SOCKET_T & fd, FDDomain domain, 
     clientFDList_ = newFD;
   }
   FD_SET( fd, &masterFDSet_ );
-#ifdef WIN_32
+#ifdef WIN32
   maxFD_++;
 #else
   maxFD_ = max( fd, maxFD_ );
@@ -1187,7 +1190,7 @@ void PyConnectNetComm::addFdToClientList( const SOCKET_T & fd, FDDomain domain, 
   setLastUsedCommChannel( fd );
 
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
     LeaveCriticalSection( &g_criticalSection );
 #else
     pthread_mutex_unlock( &g_mutex );
@@ -1213,7 +1216,7 @@ void PyConnectNetComm::destroyCurrentClient( ClientFD * & FDPtr, ClientFD * & pr
   SOCKET_T fd = FDPtr->fd;
   
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   EnterCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_lock( &g_mutex );
@@ -1239,7 +1242,7 @@ void PyConnectNetComm::destroyCurrentClient( ClientFD * & FDPtr, ClientFD * & pr
   }
 
   if (fd != INVALID_SOCKET) {
-#ifdef WIN_32
+#ifdef WIN32
     shutdown( fd, SD_SEND );
     closesocket( fd );
 #else
@@ -1251,7 +1254,7 @@ void PyConnectNetComm::destroyCurrentClient( ClientFD * & FDPtr, ClientFD * & pr
       pFDOwner_->clearFD( fd );
   }
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   LeaveCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_unlock( &g_mutex );
@@ -1263,7 +1266,7 @@ void PyConnectNetComm::destroyCurrentClient( ClientFD * & FDPtr, ClientFD * & pr
 void PyConnectNetComm::destroyCurrentClient( SOCKET_T fd )
 {
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   EnterCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_lock( &g_mutex );
@@ -1298,7 +1301,7 @@ void PyConnectNetComm::destroyCurrentClient( SOCKET_T fd )
       }
 
       delete FDPtr;
-#ifdef WIN_32
+#ifdef WIN32
       shutdown( fd, SD_SEND );
       closesocket( fd );
 #else
@@ -1309,7 +1312,7 @@ void PyConnectNetComm::destroyCurrentClient( SOCKET_T fd )
   }
 
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
   LeaveCriticalSection( &g_criticalSection );
 #else
   pthread_mutex_unlock( &g_mutex );
@@ -1328,7 +1331,7 @@ void PyConnectNetComm::updateMPID()
   }
 }
 
-#ifdef WIN_32
+#ifdef WIN32
 bool PyConnectNetComm::getIDFromIP( int & addr )
 {
   char * buf = NULL;

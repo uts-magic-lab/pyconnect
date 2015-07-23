@@ -32,7 +32,7 @@
 #include <openssl/err.h>
 
 #ifdef WIN32
-#include <WinBase.h>
+#include <windows.h>
 #else
 #include <pthread.h>
 #endif

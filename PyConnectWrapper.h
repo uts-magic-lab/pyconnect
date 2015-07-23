@@ -21,7 +21,7 @@
 #ifndef PyConnectWrapper_h_DEFINED
 #define PyConnectWrapper_h_DEFINED
 
-#ifdef WIN_32
+#ifdef WIN32
 #pragma warning( disable: 4267 ) //TODO: need to detailed verification on this usage
 #endif
 
@@ -501,7 +501,7 @@ private:
   pyconnect::PyConnectWrapper::instance()->s_arglist.push_back(            \
     new pyconnect::Argument( #NAME, DESC, pyconnect::PyConnectType::typeName( #TYPE ), true ) );
 
-#if defined( WIN_32 ) || defined( SUN_COMPILER )
+#if defined( WIN32 ) || defined( SUN_COMPILER )
 #define PYCONNECT_METHOD_ACCESS( NAME, ... )  \
   static void s_call_fn_##NAME( int metdId, unsigned char * & dataStr, int & rBytes, int serverId )        \
   {                      \
@@ -572,7 +572,7 @@ private:
     pyconnect::PyConnectWrapper::instance()->s_arglist );  \
   pyconnect::PyConnectWrapper::instance()->s_arglist.clear()
 
-#else // !(WIN_32 || SUN_COMPILER)
+#else // !(WIN32 || SUN_COMPILER)
 #define PYCONNECT_METHOD_ACCESS( NAME, ARGLIST... )  \
   static void s_call_fn_##NAME( int metdId, unsigned char * & dataStr, int & rBytes, int serverId )        \
   {                      \
@@ -643,7 +643,7 @@ private:
     pyconnect::PyConnectWrapper::instance()->s_arglist );  \
   pyconnect::PyConnectWrapper::instance()->s_arglist.clear();
 
-#endif // WIN_32
+#endif // WIN32
 } // namespace pyconnect
 
 #endif // PyConnectWrapper_h_DEFINED

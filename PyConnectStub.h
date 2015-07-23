@@ -38,7 +38,7 @@
 
 // critical section/mutex
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
 #include <Winbase.h>
 extern CRITICAL_SECTION g_criticalSection;
 #else

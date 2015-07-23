@@ -27,7 +27,7 @@
 #include <OPENR/OObserver.h>
 #endif
 
-#ifdef WIN_32
+#ifdef WIN32
 #include <winsock2.h>
 #define SOCKET_T  SOCKET
 #else

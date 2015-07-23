@@ -46,7 +46,7 @@ Method::Method( const char * desc, PyConnectType::Type type,
 Argument::Argument( const char * name, const char * desc,
                    PyConnectType::Type type, bool isOptional )
 {
-#ifdef WIN_32
+#ifdef WIN32
   strncpy_s( this->name, 256, name, _TRUNCATE );
 #else
   strncpy( this->name, name, 255 );

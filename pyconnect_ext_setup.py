@@ -29,14 +29,18 @@ BIG_ENDIAN_ARCH = [ 'sparc', 'powerpc', 'ppc' ]
 macro = [('PYTHON_SERVER', None), ('PYCONNECT_DEFAULT_SERVER_ID', '2'), 
          ('MULTI_THREAD', None), ('RELEASE', None)] #, ('USE_MULTICAST', None)]
 
-lib = ['crypto']
+lib = []
+inc_dirs = []
+lib_dirs = []
 
 osname = os.name
 if osname == 'nt':
-    macro = macro + [('WIN_32', None), ('WIN32_LEAN_AND_MEAN', None)]
-    lib = lib + ['ws2_32', 'Kernel32']
+    macro = macro + [('WIN32', None), ('WIN32_LEAN_AND_MEAN', None), ('NO_WINCOM', None)]
+    lib = lib + ['ws2_32', 'Kernel32', 'libeay32', 'advapi32', 'oleaut32', 'user32', 'gdi32']
+    inc_dirs = ['Windows/include']
+    lib_dirs = ['Windows/lib']
 elif osname == 'posix':
-    lib = lib + ['pthread']
+    lib = ['crypto', 'pthread']
     f = os.popen('uname -ms')
     (myos, myarch) = f.readline().split(' ')
     f.close()
@@ -57,7 +61,8 @@ else:
 
 module1 = Extension('PyConnect',
                     define_macros = macro,
-                    include_dirs = ['.'],
+                    include_dirs = inc_dirs,
+                    library_dirs = lib_dirs,
                     libraries = lib,
                     sources = ['PyConnectPyModule.cpp','PyConnectObjComm.cpp',
                     'PyConnectNetComm.cpp','PyConnectStub.cpp','PyConnectCommon.cpp'])

@@ -22,7 +22,7 @@
 #define PyConnectNetComm_h_DEFINED
 
 #include <sys/types.h>
-#ifdef WIN_32
+#ifdef WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
@@ -36,7 +36,7 @@
 
 // critical section/mutex
 #ifdef MULTI_THREAD
-#ifdef WIN_32
+#ifdef WIN32
 #include <winbase.h>
 extern CRITICAL_SECTION g_criticalSection;
 #else
@@ -45,7 +45,7 @@ extern pthread_mutex_t g_mutex;
 #endif
 #endif
 
-#ifndef WIN_32
+#ifndef WIN32
 #define PYCONNECT_DOMAINSOCKET_PATH  "/tmp"
 #ifdef PYTHON_SERVER
 #define PYCONNECT_SVRSOCKET_PREFIX  "pysvr"
@@ -54,7 +54,7 @@ extern pthread_mutex_t g_mutex;
 #define PYCONNECT_SVRSOCKET_PREFIX  "pyclt"
 #define PYCONNECT_CLTSOCKET_PREFIX  "pysvr"
 #endif
-#endif //!WIN_32
+#endif //!WIN32
 
 #define PYCONNECT_NETCOMM_PORT 37251
 #ifndef PYCONNECT_BROADCAST_IP
@@ -101,7 +101,7 @@ extern pthread_mutex_t g_mutex;
 #define PYCONNECT_NETCOMM_DISABLE_NET \
   PyConnectNetComm::instance()->disableNetComm()
 
-#ifdef WIN_32
+#ifdef WIN32
 #define PYCONNECT_NETCOMM_ENABLE_IPC \
   static_assert( 0, "PYCONNECT_NETCOMM_ENABLE_IPC is not supported under Windows." )
 #define PYCONNECT_NETCOMM_DISABLE_IPC \
@@ -141,10 +141,10 @@ public:
 
   void enableNetComm();
   void disableNetComm( bool onExit = false );
-#ifndef WIN_32
+#ifndef WIN32
   void enableIPCComm();
   void disableIPCComm( bool onExit = false );
-#endif //!WIN_32
+#endif //!WIN32
 
 private:
   enum FDDomain {
@@ -178,11 +178,11 @@ private:
 
   void processUDPInput( unsigned char * recBuffer, int recBytes, struct sockaddr_in & cAddr );
   bool createTCPTalker( struct sockaddr_in & cAddr );
-#ifndef WIN_32
+#ifndef WIN32
   SOCKET_T findOrCreateIPCTalker( int procID );
   SOCKET_T findFdFromClientListByProcID( int procID );
   void consolidateIPCSockets();
-#endif // !WIN_32
+#endif // !WIN32
   void addFdToClientList( const SOCKET_T & fd, FDDomain domain,
                          struct sockaddr_in * cAddr, int procID = 0 );
   void destroyCurrentClient( SOCKET_T fd );

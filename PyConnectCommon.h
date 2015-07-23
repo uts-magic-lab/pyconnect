@@ -42,10 +42,17 @@
 #ifdef RELEASE
 #define PYCONNECT_LOGGING_INIT
 #define PYCONNECT_LOGGING_DECLARE( LOGNAME )
+#if defined( WIN32 ) || defined( SUN_COMPILER )
+#define DEBUG_MSG( ... )
+#define ERROR_MSG( ... )
+#define WARNING_MSG( ... )
+#define INFO_MSG( ... )
+#else
 #define DEBUG_MSG( MSG... )
 #define ERROR_MSG( MSG... )
 #define WARNING_MSG( MSG... )
 #define INFO_MSG( MSG... )
+#endif
 #define PYCONNECT_LOGGING_FINI
 #else
 #ifdef OPENR_LOG
@@ -65,7 +72,7 @@ extern FILE * s_pyconnectlog;
 
 //#define s_pyconnectlog stdout
 
-#if defined( WIN_32 ) || defined( SUN_COMPILER )
+#if defined( WIN32 ) || defined( SUN_COMPILER )
 #define DEBUG_MSG(...) \
 fprintf( s_pyconnectlog, "DEBUG: " ); \
 fprintf( s_pyconnectlog, __VA_ARGS__ ); \
@@ -85,7 +92,7 @@ fflush( s_pyconnectlog )
 fprintf( s_pyconnectlog, "ERROR: " ); \
 fprintf( s_pyconnectlog, __VA_ARGS__ ); \
 fflush( s_pyconnectlog )
-#else // !WIN_32
+#else // !WIN32
 #define DEBUG_MSG( MSG... ) \
 fprintf( s_pyconnectlog, "DEBUG: " ); \
 fprintf( s_pyconnectlog, MSG ); \

@@ -18,12 +18,14 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <arpa/inet.h>
-#include "PyConnectStub.h"
-
-#ifdef WIN_32
+#ifdef WIN32
 #pragma warning( disable: 4018 )
+#include <ws2tcpip.h>
+#else
+#include <arpa/inet.h>
 #endif
+
+#include "PyConnectStub.h"
 
 namespace pyconnect {
 // static variables
