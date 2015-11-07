@@ -676,7 +676,9 @@ void PyConnectStub::updateMPID( int id )
                 serverID_, id );
   }
   serverID_ = id;
-  PyObject_SetAttrString( pPyConnect_, "ServerID", PyInt_FromLong( id ) );
+  PyObject * idObj = PyInt_FromLong( id );
+  PyObject_SetAttrString( pPyConnect_, "ServerID", idObj );
+  Py_DECREF( idObj );
 }
 
 void PyConnectStub::addNewModule( std::string & name, std::string & desc, char options, struct sockaddr_in & cAddr )
