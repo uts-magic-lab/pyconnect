@@ -8,7 +8,7 @@ add_definitions(-DPYTHON_SERVER -DPYCONNECT_DEFAULT_SERVER_ID=2 -DMULTI_THREAD -
 
 qi_create_lib( PyConnect
   SRC PyConnectPyModule.cpp
-      PyConnectObjcomm.cpp
+      PyConnectObjComm.cpp
       PyConnectNetComm.cpp
       PyConnectStub.cpp
       PyConnectCommon.cpp
