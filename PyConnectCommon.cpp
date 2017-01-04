@@ -31,10 +31,12 @@
 #include <openssl/buffer.h>
 #include <openssl/err.h>
 
+#ifndef OPENR_OBJECT
 #ifdef WIN32
 #include <windows.h>
 #else
 #include <pthread.h>
+#endif
 #endif
 
 #define ENCRYPTION_KEY_LENGTH  32
@@ -59,13 +61,15 @@ static unsigned char * encrypt_key;
 static unsigned char * encryptbuffer = NULL;
 static unsigned char * decryptbuffer = NULL;
 
+#ifndef OPENR_OBJECT
 #ifdef WIN32
-static  CRITICAL_SECTION t_criticalSection_1_;
-static  CRITICAL_SECTION t_criticalSection_2_;
+static CRITICAL_SECTION t_criticalSection_1_;
+static CRITICAL_SECTION t_criticalSection_2_;
 #else
 static pthread_mutex_t t_mutex_1;
 static pthread_mutex_t t_mutex_2;
 static pthread_mutexattr_t t_mta;
+#endif
 #endif
 
 // helper functions
@@ -119,6 +123,7 @@ void endecryptInit()
 {
   INFO_MSG( "Communication encryption enabled.\n" );
   
+#ifndef OPENR_OBJECT
 #ifdef WIN32
   InitializeCriticalSection( &t_criticalSection_1_ );
   InitializeCriticalSection( &t_criticalSection_2_ );
@@ -127,6 +132,7 @@ void endecryptInit()
   pthread_mutexattr_settype( &t_mta, PTHREAD_MUTEX_RECURSIVE );
   pthread_mutex_init( &t_mutex_1, &t_mta );
   pthread_mutex_init( &t_mutex_2, &t_mta );
+#endif
 #endif
   
   size_t keyLen = 0;
@@ -161,6 +167,7 @@ void endecryptFini()
     free( encrypt_key );
     encrypt_key = NULL;
   }
+#ifndef OPENR_OBJECT
 #ifdef WIN32
   DeleteCriticalSection( &t_criticalSection_1_ );
   DeleteCriticalSection( &t_criticalSection_2_ );
@@ -169,14 +176,17 @@ void endecryptFini()
   pthread_mutex_destroy( &t_mutex_2 );
   pthread_mutexattr_destroy( &t_mta );
 #endif
+#endif
 }
 
 int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned char ** decryptedMesg, int * decryptedMesgLength )
 {
+#ifndef OPENR_OBJECT
 #ifdef WIN32
   EnterCriticalSection( &t_criticalSection_1_ );
 #else
   pthread_mutex_lock( &t_mutex_1 );
+#endif
 #endif
   int oLen = 0, tLen = 0;
   EVP_CIPHER_CTX ctx;
@@ -188,20 +198,24 @@ int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
   if (EVP_DecryptUpdate( &ctx, decryptbuffer, &oLen, origMesg, origMesgLength ) != 1) {
     //ERROR_MSG( "EVP_DecryptUpdate failed.\n" );
     EVP_CIPHER_CTX_cleanup( &ctx );
+#ifndef OPENR_OBJECT
 #ifdef WIN32
     LeaveCriticalSection( &t_criticalSection_1_ );
 #else
     pthread_mutex_unlock( &t_mutex_1 );
+#endif
 #endif
     return 0;
   }
   if (EVP_DecryptFinal( &ctx, decryptbuffer+oLen, &tLen ) != 1) {
     //ERROR_MSG( "EVP_DecryptFinal failed.\n" );
     EVP_CIPHER_CTX_cleanup( &ctx );
+#ifndef OPENR_OBJECT
 #ifdef WIN32
     LeaveCriticalSection( &t_criticalSection_1_ );
 #else
     pthread_mutex_unlock( &t_mutex_1 );
+#endif
 #endif
     return 0;
   }
@@ -209,20 +223,24 @@ int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
   *decryptedMesgLength = oLen + tLen;
   *decryptedMesg = decryptbuffer;
   EVP_CIPHER_CTX_cleanup( &ctx );
+#ifndef OPENR_OBJECT
 #ifdef WIN32
   LeaveCriticalSection( &t_criticalSection_1_ );
 #else
   pthread_mutex_unlock( &t_mutex_1 );
+#endif
 #endif
   return 1;
 }
 
 int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned char ** encryptedMesg, int * encryptedMesgLength )
 {
+#ifndef OPENR_OBJECT
 #ifdef WIN32
   EnterCriticalSection( &t_criticalSection_2_ );
 #else
   pthread_mutex_lock( &t_mutex_2 );
+#endif
 #endif
   int oLen = 0, tLen = 0;
   EVP_CIPHER_CTX ctx;
@@ -234,10 +252,12 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
   if (EVP_EncryptUpdate( &ctx, encryptbuffer, &oLen, origMesg, origMesgLength ) != 1) {
     //ERROR_MSG( "EVP_EncryptUpdate failed.\n" );
     EVP_CIPHER_CTX_cleanup( &ctx );
+#ifndef OPENR_OBJECT
 #ifdef WIN32
     LeaveCriticalSection( &t_criticalSection_2_ );
 #else
     pthread_mutex_unlock( &t_mutex_2 );
+#endif
 #endif
     return 0;
   }
@@ -245,10 +265,12 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
   if (EVP_EncryptFinal( &ctx, encryptbuffer+oLen, &tLen ) != 1) {
     //ERROR_MSG( "EVP_EncryptFinal failed.\n" );
     EVP_CIPHER_CTX_cleanup( &ctx );
+#ifndef OPENR_OBJECT
 #ifdef WIN32
     LeaveCriticalSection( &t_criticalSection_2_ );
 #else
     pthread_mutex_unlock( &t_mutex_2 );
+#endif
 #endif
     return 0;
   }
@@ -256,10 +278,12 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
   *encryptedMesgLength = oLen + tLen;
   *encryptedMesg = encryptbuffer;
   EVP_CIPHER_CTX_cleanup( &ctx );
+#ifndef OPENR_OBJECT
 #ifdef WIN32
   LeaveCriticalSection( &t_criticalSection_2_ );
 #else
   pthread_mutex_unlock( &t_mutex_2 );
+#endif
 #endif
   return 1;
 }
