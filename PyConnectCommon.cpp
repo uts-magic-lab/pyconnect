@@ -189,7 +189,7 @@ int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 #endif
 #endif
   int oLen = 0, tLen = 0;
-#if OPENSSL_VERSION_NUMBER < 0x11000000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
   EVP_CIPHER_CTX ectx;
   EVP_CIPHER_CTX * ctx = &ectx;
 #else
@@ -202,7 +202,7 @@ int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 
   if (EVP_DecryptUpdate( ctx, decryptbuffer, &oLen, origMesg, origMesgLength ) != 1) {
     //ERROR_MSG( "EVP_DecryptUpdate failed.\n" );
-#if OPENSSL_VERSION_NUMBER < 0x11000000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     EVP_CIPHER_CTX_cleanup( ctx );
 #else
     EVP_CIPHER_CTX_free( ctx );
@@ -218,7 +218,7 @@ int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
   }
   if (EVP_DecryptFinal( ctx, decryptbuffer+oLen, &tLen ) != 1) {
     //ERROR_MSG( "EVP_DecryptFinal failed.\n" );
-#if OPENSSL_VERSION_NUMBER < 0x11000000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     EVP_CIPHER_CTX_cleanup( ctx );
 #else
     EVP_CIPHER_CTX_free( ctx );
@@ -235,7 +235,7 @@ int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 
   *decryptedMesgLength = oLen + tLen;
   *decryptedMesg = decryptbuffer;
-#if OPENSSL_VERSION_NUMBER < 0x11000000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
   EVP_CIPHER_CTX_cleanup( ctx );
 #else
   EVP_CIPHER_CTX_free( ctx );
@@ -262,7 +262,7 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 #endif
   int oLen = 0, tLen = 0;
 
-#if OPENSSL_VERSION_NUMBER < 0x11000000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
   EVP_CIPHER_CTX ectx;
   EVP_CIPHER_CTX * ctx = &ectx;
 #else
@@ -275,7 +275,7 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 
   if (EVP_EncryptUpdate( ctx, encryptbuffer, &oLen, origMesg, origMesgLength ) != 1) {
     //ERROR_MSG( "EVP_EncryptUpdate failed.\n" );
-#if OPENSSL_VERSION_NUMBER < 0x11000000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     EVP_CIPHER_CTX_cleanup( ctx );
 #else
     EVP_CIPHER_CTX_free( ctx );
@@ -292,7 +292,7 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 
   if (EVP_EncryptFinal( ctx, encryptbuffer+oLen, &tLen ) != 1) {
     //ERROR_MSG( "EVP_EncryptFinal failed.\n" );
-#if OPENSSL_VERSION_NUMBER < 0x11000000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     EVP_CIPHER_CTX_cleanup( ctx );
 #else
     EVP_CIPHER_CTX_free( ctx );
@@ -309,7 +309,7 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 
   *encryptedMesgLength = oLen + tLen;
   *encryptedMesg = encryptbuffer;
-#if OPENSSL_VERSION_NUMBER < 0x11000000L
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
   EVP_CIPHER_CTX_cleanup( ctx );
 #else
   EVP_CIPHER_CTX_free( ctx );
