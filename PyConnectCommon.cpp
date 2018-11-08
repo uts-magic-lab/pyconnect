@@ -1,6 +1,6 @@
 /*
  *  PyConnectCommon.cpp
- *  
+ *
  *  Copyright 2006, 2007, 2013, 2014 Xun Wang.
  *  This file is part of PyConnect.
  *
@@ -77,13 +77,13 @@ static pthread_mutexattr_t t_mta;
 unsigned char * decodeBase64( char * input, size_t * outLen )
 {
   BIO * bmem, * b64;
-  
+
   int inLen = (int)strlen( input );
   int maxOutLen=(inLen * 6 + 7) / 8;
   unsigned char * buf = (unsigned char *)malloc( maxOutLen );
   if (buf) {
     memset( buf, 0, maxOutLen );
-    
+
     b64 = BIO_new( BIO_f_base64() );
     if (b64) {
       BIO_set_flags( b64, BIO_FLAGS_BASE64_NO_NL );
@@ -101,7 +101,7 @@ char * encodeBase64( const unsigned char * input, size_t length )
   BIO * bmem, * b64;
   BUF_MEM * bptr;
   char * buf = NULL;
-  
+
   b64 = BIO_new( BIO_f_base64() );
   if (b64) {
     BIO_set_flags( b64, BIO_FLAGS_BASE64_NO_NL );
@@ -110,7 +110,7 @@ char * encodeBase64( const unsigned char * input, size_t length )
     BIO_write( b64, input, (int)length );
     BIO_flush( b64 );
     BIO_get_mem_ptr( b64, &bptr );
-    
+
     buf = (char *)malloc( bptr->length + 1);
     memcpy( buf, bptr->data, bptr->length );
     buf[bptr->length] = 0;
@@ -122,7 +122,7 @@ char * encodeBase64( const unsigned char * input, size_t length )
 void endecryptInit()
 {
   INFO_MSG( "Communication encryption enabled.\n" );
-  
+
 #ifndef OPENR_OBJECT
 #ifdef WIN32
   InitializeCriticalSection( &t_criticalSection_1_ );
@@ -134,17 +134,17 @@ void endecryptInit()
   pthread_mutex_init( &t_mutex_2, &t_mta );
 #endif
 #endif
-  
+
   size_t keyLen = 0;
   if (encrypt_key) {
     free( encrypt_key );
   }
   encrypt_key = decodeBase64( (char *)encrypt_key_text, &keyLen );
-  
+
   if (keyLen != ENCRYPTION_KEY_LENGTH) {
     ERROR_MSG( "Encryption key decode error.\n" );
   }
-  
+
   if (!encryptbuffer) {
     encryptbuffer = (unsigned char *)malloc( PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE );
   }
@@ -189,15 +189,24 @@ int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 #endif
 #endif
   int oLen = 0, tLen = 0;
-  EVP_CIPHER_CTX ctx;
-  EVP_CIPHER_CTX_init( &ctx );
-  EVP_DecryptInit( &ctx, EVP_bf_cbc(), encrypt_key, encrypt_iv );
-  
+#if OPENSSL_VERSION_NUMBER < 0x11000000L
+  EVP_CIPHER_CTX ectx;
+  EVP_CIPHER_CTX * ctx = &ectx;
+#else
+  EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
+#endif
+  EVP_CIPHER_CTX_init( ctx );
+  EVP_DecryptInit( ctx, EVP_bf_cbc(), encrypt_key, encrypt_iv );
+
   memset( decryptbuffer, 0, PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE );
-  
-  if (EVP_DecryptUpdate( &ctx, decryptbuffer, &oLen, origMesg, origMesgLength ) != 1) {
+
+  if (EVP_DecryptUpdate( ctx, decryptbuffer, &oLen, origMesg, origMesgLength ) != 1) {
     //ERROR_MSG( "EVP_DecryptUpdate failed.\n" );
-    EVP_CIPHER_CTX_cleanup( &ctx );
+#if OPENSSL_VERSION_NUMBER < 0x11000000L
+    EVP_CIPHER_CTX_cleanup( ctx );
+#else
+    EVP_CIPHER_CTX_free( ctx );
+#endif
 #ifndef OPENR_OBJECT
 #ifdef WIN32
     LeaveCriticalSection( &t_criticalSection_1_ );
@@ -207,9 +216,13 @@ int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 #endif
     return 0;
   }
-  if (EVP_DecryptFinal( &ctx, decryptbuffer+oLen, &tLen ) != 1) {
+  if (EVP_DecryptFinal( ctx, decryptbuffer+oLen, &tLen ) != 1) {
     //ERROR_MSG( "EVP_DecryptFinal failed.\n" );
-    EVP_CIPHER_CTX_cleanup( &ctx );
+#if OPENSSL_VERSION_NUMBER < 0x11000000L
+    EVP_CIPHER_CTX_cleanup( ctx );
+#else
+    EVP_CIPHER_CTX_free( ctx );
+#endif
 #ifndef OPENR_OBJECT
 #ifdef WIN32
     LeaveCriticalSection( &t_criticalSection_1_ );
@@ -219,10 +232,15 @@ int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 #endif
     return 0;
   }
-  
+
   *decryptedMesgLength = oLen + tLen;
   *decryptedMesg = decryptbuffer;
-  EVP_CIPHER_CTX_cleanup( &ctx );
+#if OPENSSL_VERSION_NUMBER < 0x11000000L
+  EVP_CIPHER_CTX_cleanup( ctx );
+#else
+  EVP_CIPHER_CTX_free( ctx );
+#endif
+
 #ifndef OPENR_OBJECT
 #ifdef WIN32
   LeaveCriticalSection( &t_criticalSection_1_ );
@@ -243,15 +261,25 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 #endif
 #endif
   int oLen = 0, tLen = 0;
-  EVP_CIPHER_CTX ctx;
-  EVP_CIPHER_CTX_init( &ctx );
-  EVP_EncryptInit( &ctx, EVP_bf_cbc(), encrypt_key, encrypt_iv );
-  
+
+#if OPENSSL_VERSION_NUMBER < 0x11000000L
+  EVP_CIPHER_CTX ectx;
+  EVP_CIPHER_CTX * ctx = &ectx;
+#else
+  EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
+#endif
+  EVP_CIPHER_CTX_init( ctx );
+  EVP_EncryptInit( ctx, EVP_bf_cbc(), encrypt_key, encrypt_iv );
+
   memset( encryptbuffer, 0, PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE );
-  
-  if (EVP_EncryptUpdate( &ctx, encryptbuffer, &oLen, origMesg, origMesgLength ) != 1) {
+
+  if (EVP_EncryptUpdate( ctx, encryptbuffer, &oLen, origMesg, origMesgLength ) != 1) {
     //ERROR_MSG( "EVP_EncryptUpdate failed.\n" );
-    EVP_CIPHER_CTX_cleanup( &ctx );
+#if OPENSSL_VERSION_NUMBER < 0x11000000L
+    EVP_CIPHER_CTX_cleanup( ctx );
+#else
+    EVP_CIPHER_CTX_free( ctx );
+#endif
 #ifndef OPENR_OBJECT
 #ifdef WIN32
     LeaveCriticalSection( &t_criticalSection_2_ );
@@ -261,10 +289,14 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 #endif
     return 0;
   }
-  
-  if (EVP_EncryptFinal( &ctx, encryptbuffer+oLen, &tLen ) != 1) {
+
+  if (EVP_EncryptFinal( ctx, encryptbuffer+oLen, &tLen ) != 1) {
     //ERROR_MSG( "EVP_EncryptFinal failed.\n" );
-    EVP_CIPHER_CTX_cleanup( &ctx );
+#if OPENSSL_VERSION_NUMBER < 0x11000000L
+    EVP_CIPHER_CTX_cleanup( ctx );
+#else
+    EVP_CIPHER_CTX_free( ctx );
+#endif
 #ifndef OPENR_OBJECT
 #ifdef WIN32
     LeaveCriticalSection( &t_criticalSection_2_ );
@@ -274,10 +306,14 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 #endif
     return 0;
   }
-  
+
   *encryptedMesgLength = oLen + tLen;
   *encryptedMesg = encryptbuffer;
-  EVP_CIPHER_CTX_cleanup( &ctx );
+#if OPENSSL_VERSION_NUMBER < 0x11000000L
+  EVP_CIPHER_CTX_cleanup( ctx );
+#else
+  EVP_CIPHER_CTX_free( ctx );
+#endif
 #ifndef OPENR_OBJECT
 #ifdef WIN32
   LeaveCriticalSection( &t_criticalSection_2_ );
@@ -343,7 +379,7 @@ void packString( unsigned char * str, int length, unsigned char * & dataBufPtr,
     bool extendSize )
 {
   if (!dataBufPtr || !str) return;
-  
+
   if (extendSize) {
     packIntToStr( length, dataBufPtr );
   }
@@ -362,7 +398,7 @@ std::string unpackString( unsigned char * & dataBufPtr, int & remainingBytes,
     bool extendSize )
 {
   if (!dataBufPtr) return std::string( "" );
-  
+
   int strLen = 0;
   char * str = NULL;
 
@@ -376,7 +412,7 @@ std::string unpackString( unsigned char * & dataBufPtr, int & remainingBytes,
 
   if (strLen == 0)
     return std::string( "" );
-  
+
   str = new char[strLen+1];
   memcpy( str, dataBufPtr, strLen );
   str[strLen] = '\0';
@@ -439,7 +475,7 @@ int PyConnectType::validateTypeAndSize( PyObject * obj, Type type )
   if (!obj) {
     return 0; //just in case we have a NULL pointer
   }
-  
+
   switch (type) {
     case INT:
       if (PyInt_Check( obj ))
