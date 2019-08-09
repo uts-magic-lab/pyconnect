@@ -178,7 +178,7 @@ public:
 #endif
 };
 
-template <class DataType> static int packToLENumber( const DataType & v, unsigned char * & dataPtr )
+template <typename DataType> static int packToLENumber( const DataType & v, unsigned char * & dataPtr )
 {
   // TODO: optimise this operation
   int dataLength = sizeof( DataType );
@@ -197,7 +197,7 @@ template <class DataType> static int packToLENumber( const DataType & v, unsigne
   return dataLength;
 }
 
-template <class DataType> static void unpackLENumber( DataType & val, unsigned char * & dataPtr, int & remainingLength )
+template <typename DataType> static void unpackLENumber( DataType & val, unsigned char * & dataPtr, int & remainingLength )
 {
   // TODO: optimise this operation
   int dataLength = sizeof( DataType );

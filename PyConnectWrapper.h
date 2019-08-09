@@ -132,7 +132,7 @@ private:
   OObject * oobject_;
 };
 
-template <class DataType> struct PyConnectData {
+template <typename DataType> struct PyConnectData {
   // NOTE:: any data types apart from the basic data type are expected to have their
   // own template specialisation.
   static DataType getData( unsigned char * & dataStr, int & remainingBytes, PyConnectMsgStatus & status )
@@ -405,17 +405,21 @@ private:
   pyconnect::PyConnectWrapper::instance()->moduleShutdown()  \
 
 #define PYCONNECT_RO_ATTRIBUTE( NAME )    \
+  decltype(NAME) get##NAME##_value() const  \
+  { \
+    return this->NAME;  \
+  } \
   static int s_get_raw_value_##NAME( unsigned char * & valueBuf )  \
   {                            \
     return pyconnect::PyConnectWrapper::instance()->packRawAttrData( \
-      static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME, \
+      static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->get##NAME##_value(), \
       valueBuf );                    \
   }                            \
   static void s_get_attr_##NAME( int attrId, int serverId )    \
   {                            \
     if (pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject()) {        \
       pyconnect::PyConnectWrapper::instance()->postAttrMetdData( attrId,        \
-        static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME,  \
+        static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->get##NAME##_value(),  \
         pyconnect::PyConnectWrapper::instance()->validateAttribute( attrId, #NAME ),  \
         serverId );            \
     }                    \
@@ -434,17 +438,25 @@ private:
     &PYCONNECT_MODULE_NAME::s_get_attr_##NAME, NULL );
 
 #define PYCONNECT_RW_ATTRIBUTE( NAME )  \
+  decltype(NAME) get_##NAME##_value() const  \
+  { \
+    return this->NAME; \
+  } \
+  void set_##NAME##_value( decltype(NAME) value ) \
+  { \
+    return this->NAME = value;  \
+  } \
   static int s_get_raw_value_##NAME( unsigned char * & valueBuf )  \
   {                            \
     return pyconnect::PyConnectWrapper::instance()->packRawAttrData( \
-      static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME, \
+      static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->get_##NAME##_value(), \
       valueBuf );                    \
   }                            \
   static void s_get_attr_##NAME( int attrId, int serverId )    \
   {                                \
     if (pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject()) {        \
       pyconnect::PyConnectWrapper::instance()->postAttrMetdData( attrId,          \
-        static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME,  \
+        static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->get_##NAME##_value(),  \
         pyconnect::PyConnectWrapper::instance()->validateAttribute( attrId, #NAME ),  \
         serverId );            \
     }                    \
@@ -459,7 +471,7 @@ private:
   {                      \
     if (pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject()) {        \
       pyconnect::PyConnectWrapper::instance()->setAttrData( attrId,            \
-        static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME,  \
+        static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->set_##NAME##_value( NAME ),  \
         dataStr, rBytes,                      \
         pyconnect::PyConnectWrapper::instance()->validateAttribute( attrId, #NAME ),  \
         serverId );            \
