@@ -54,6 +54,11 @@ public:
   std::string concateString( const std::string & a, const std::string & b );
   void testBoolean( bool good );
 
+private:
+  int methodCalls; //number of times methods in TestSample1 have been called
+  std::string myString;
+
+public:
   PYCONNECT_NETCOMM_DECLARE;
   PYCONNECT_WRAPPER_DECLARE;
   
@@ -65,9 +70,6 @@ public:
   PYCONNECT_METHOD_ACCESS( doDivision, ARGTYPE( float ), ARGTYPE( float ) );
   PYCONNECT_METHOD_ACCESS( concateString, ARGTYPE( std::string ), ARGTYPE( std::string ) );
 
-  int methodCalls; //number of times methods in TestSample1 have been called
-  std::string myString;
-  
   PYCONNECT_RO_ATTRIBUTE( methodCalls );
   PYCONNECT_RO_ATTRIBUTE( myString );
 };

@@ -21,6 +21,10 @@
 #ifndef PyConnectCommon_h_DEFINED
 #define PyConnectCommon_h_DEFINED
 
+#ifndef _MSC_VER
+#include <cxxabi.h>
+#endif
+
 #ifdef PYTHON_SERVER
 #ifdef _POSIX_C_SOURCE
 #undef _POSIX_C_SOURCE
@@ -156,8 +160,7 @@ typedef enum {
   MSG_CORRUPTED         = 0xf
 } PyConnectMsgStatus;
 
-class PyConnectType {
-public:
+struct PyConnectType {
   typedef enum {
     INT  = 0,
     FLOAT  = 1,
@@ -167,9 +170,12 @@ public:
     COMPOSITE = 5,
     PyVOID  = 6 // silly window compile breaks if defined as VOID
   } Type;
-  
+
+  /*
   static std::string typeName( Type type );
+  */
   static Type typeName( const char * type );
+
 #ifdef PYTHON_SERVER
   static int validateTypeAndSize( PyObject * obj, Type type );
   static PyObject * defaultValue( Type type );
@@ -177,6 +183,71 @@ public:
   static PyObject * unpackStr( Type type, unsigned char * & dataPtr, int & remainingLength );
 #endif
 };
+
+template <typename T> const PyConnectType::Type getVarType( const T& val )
+{
+#ifndef _MSC_VER
+  int status = 0;
+  char * demangled = abi::__cxa_demangle( typeid(val).name(), 0, 0, &status );
+#else
+  char * demangled = typeid(val).name();
+#endif
+  ERROR_MSG( "PyConnect::getVarType: c++ data type %s is not supported", demangled );
+  return PyConnectType::COMPOSITE;
+}
+template <typename T> const char * getVarTypeName( const T& val )
+{
+#ifndef _MSC_VER
+  int status = 0;
+  char * demangled = abi::__cxa_demangle( typeid(val).name(), 0, 0, &status );
+#else
+  char * demangled = typeid(val).name();
+#endif
+  ERROR_MSG( "PyConnect::getVarTypeName: c++ data type %s is not supported", demangled );
+  return "";
+}
+
+template <> const PyConnectType::Type getVarType( const int& )
+{
+  return PyConnectType::INT;
+}
+template <> const PyConnectType::Type getVarType( const float& )
+{
+  return PyConnectType::FLOAT;
+}
+template <> const PyConnectType::Type getVarType( const double& )
+{
+  return PyConnectType::DOUBLE;
+}
+template <> const PyConnectType::Type getVarType( const bool& )
+{
+  return PyConnectType::BOOL;
+}
+template <> const PyConnectType::Type getVarType( const std::string & )
+{
+  return PyConnectType::STRING;
+}
+
+template <> const char * getVarTypeName( const int& )
+{
+  return "integer";
+}
+template <> const char * getVarTypeName( const float& )
+{
+  return "float";
+}
+template <> const char * getVarTypeName( const double& )
+{
+  return "double";
+}
+template <> const char * getVarTypeName( const bool& )
+{
+  return "boolean";
+}
+template <> const char * getVarTypeName( const std::string& )
+{
+  return "string";
+}
 
 template <typename DataType> static int packToLENumber( const DataType & v, unsigned char * & dataPtr )
 {

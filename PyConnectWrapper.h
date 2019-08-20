@@ -29,6 +29,7 @@
 #include <vector>
 #include <iterator>
 #include <map>
+#include <typeinfo>
 #ifdef OPENR_OBJECT
 #include <OPENR/OObject.h>
 #include <OPENR/OSyslog.h>
@@ -432,9 +433,9 @@ private:
   }                      \
   void dummy_##NAME()
 
-#define PYCONNECT_RO_ATTRIBUTE_DECLARE( NAME, TYPE, DESC )    \
+#define PYCONNECT_RO_ATTRIBUTE_DECLARE( NAME, DESC )    \
   pyconnect::PyConnectWrapper::instance()->addNewAttribute( #NAME, DESC,  \
-    pyconnect::PyConnectType::typeName( #TYPE ), &PYCONNECT_MODULE_NAME::s_get_raw_value_##NAME, \
+    pyconnect::getVarType( NAME ), &PYCONNECT_MODULE_NAME::s_get_raw_value_##NAME, \
     &PYCONNECT_MODULE_NAME::s_get_attr_##NAME, NULL );
 
 #define PYCONNECT_RW_ATTRIBUTE( NAME )  \
@@ -485,9 +486,9 @@ private:
   }                      \
   void dummy_##NAME()
 
-#define PYCONNECT_RW_ATTRIBUTE_DECLARE( NAME, TYPE, DESC )  \
+#define PYCONNECT_RW_ATTRIBUTE_DECLARE( NAME, DESC )  \
   pyconnect::PyConnectWrapper::instance()->addNewAttribute( #NAME, DESC, \
-    pyconnect::PyConnectType::typeName( #TYPE ), &PYCONNECT_MODULE_NAME::s_get_raw_value_##NAME, \
+    pyconnect::getVarType( NAME ), &PYCONNECT_MODULE_NAME::s_get_raw_value_##NAME, \
     &PYCONNECT_MODULE_NAME::s_get_attr_##NAME, \
     &PYCONNECT_MODULE_NAME::s_set_attr_##NAME )
 
@@ -580,7 +581,7 @@ private:
 #define PYCONNECT_METHOD_DECLARE( NAME, RETTYPE, DESC, ... )  \
   __VA_ARGS__                            \
   pyconnect::PyConnectWrapper::instance()->addNewMethod( #NAME, DESC,  \
-    pyconnect::PyConnectType::typeName( #RETTYPE ), &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
+    pyconnect::getVarType( RETTYPE ), &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
     pyconnect::PyConnectWrapper::instance()->s_arglist );  \
   pyconnect::PyConnectWrapper::instance()->s_arglist.clear()
 

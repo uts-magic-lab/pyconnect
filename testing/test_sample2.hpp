@@ -51,22 +51,13 @@ public:
   void processContinously();
   void quit() { this->breakLoop_ = true; } 
 
-  PYCONNECT_NETCOMM_DECLARE;
-  PYCONNECT_WRAPPER_DECLARE;
-  
-  PYCONNECT_METHOD_ACCESS( enableTimer, OPT_ARGTYPE( int, 500 ) );
-  PYCONNECT_METHOD_ACCESS_VOID_RETURN( disableTimer ); // NOTE: VS2005 doesn't seem to like passing no argument to variadic macro
-  PYCONNECT_METHOD_ACCESS_VOID_RETURN( quit );
-
-  int timeout; //time out period for the timer
-  int timerTriggerNo; //number of time timer got triggered.
-  PYCONNECT_RO_ATTRIBUTE( timeout );
-  PYCONNECT_RO_ATTRIBUTE( timerTriggerNo );
-
 private:
   bool breakLoop_;
   int maxFD_;
   fd_set masterFDSet_;
+
+  int timeout; //time out period for the timer
+  int timerTriggerNo; //number of time timer got triggered.
 
   // timer handling
   bool timerEnabled_;
@@ -76,4 +67,13 @@ private:
   static int compareTimeInMS( struct timeval & timeA, struct timeval & timeB );
   static void addTimeInMS( struct timeval & time, long msec );
 
+public:
+  PYCONNECT_NETCOMM_DECLARE;
+  PYCONNECT_WRAPPER_DECLARE;
+  
+  PYCONNECT_METHOD_ACCESS( enableTimer, OPT_ARGTYPE( int, 500 ) );
+  PYCONNECT_METHOD_ACCESS_VOID_RETURN( disableTimer ); // NOTE: VS2005 doesn't seem to like passing no argument to variadic macro
+  PYCONNECT_METHOD_ACCESS_VOID_RETURN( quit );
+  PYCONNECT_RO_ATTRIBUTE( timeout );
+  PYCONNECT_RO_ATTRIBUTE( timerTriggerNo );
 };

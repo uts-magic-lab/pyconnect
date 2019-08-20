@@ -62,8 +62,9 @@ TestSample2::TestSample2() :
   timerEnabled_( false )
 {
   PYCONNECT_DECLARE_MODULE( TestSample2, "A simple timer program that uses PyConnect framework." );
-  PYCONNECT_RO_ATTRIBUTE_DECLARE( timeout, int, "timeout period for the timer" );
-  PYCONNECT_RO_ATTRIBUTE_DECLARE( timerTriggerNo, int, "timer trigger" );
+  PYCONNECT_RO_ATTRIBUTE_DECLARE( timeout, "timeout period for the timer" );
+  PYCONNECT_RO_ATTRIBUTE_DECLARE( timerTriggerNo, "timer trigger" );
+
   PYCONNECT_METHOD_DECLARE( enableTimer, bool, "enables the timer with specific timeout period",
     OPT_ARG( period, int, "timeout period in milliseconds" ) );
   PYCONNECT_METHOD_DECLARE( disableTimer, void, "disable the timer" );

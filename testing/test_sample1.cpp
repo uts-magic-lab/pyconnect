@@ -36,8 +36,10 @@ TestSample1::TestSample1() :
   myString( "my test" )
 {
   PYCONNECT_DECLARE_MODULE( TestSample1, "A simple test program that uses PyConnect framework." );
-  PYCONNECT_RO_ATTRIBUTE_DECLARE( methodCalls, int, "number of method calls so far" );
-  PYCONNECT_RO_ATTRIBUTE_DECLARE( myString, std::string, "saved concated string" );
+
+  PYCONNECT_RO_ATTRIBUTE_DECLARE( methodCalls, "number of method calls so far" );
+  PYCONNECT_RO_ATTRIBUTE_DECLARE( myString, "saved concated string" );
+
   PYCONNECT_METHOD_DECLARE( helloWorld, void, "hello world method" );
   PYCONNECT_METHOD_DECLARE( testBoolean, void, "test boolean", ARG( good, bool, "boolean" ));
   PYCONNECT_METHOD_DECLARE( printThisText, void, "prints a input text", ARG( text, std::string, "text string" ) );
