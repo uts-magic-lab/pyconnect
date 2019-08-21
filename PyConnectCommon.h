@@ -171,10 +171,8 @@ struct PyConnectType {
     PyVOID  = 6 // silly window compile breaks if defined as VOID
   } Type;
 
-  /*
-  static std::string typeName( Type type );
-  */
-  static Type typeName( const char * type );
+  static const std::string typeName( const Type type );
+  static const Type typeName( const char * type );
 
 #ifdef PYTHON_SERVER
   static int validateTypeAndSize( PyObject * obj, Type type );
@@ -184,7 +182,8 @@ struct PyConnectType {
 #endif
 };
 
-template <typename T> const PyConnectType::Type getVarType( const T& val )
+#ifndef PYTHON_SERVER
+template <typename T> static const PyConnectType::Type getVarType( const T& val )
 {
 #ifndef _MSC_VER
   int status = 0;
@@ -195,7 +194,7 @@ template <typename T> const PyConnectType::Type getVarType( const T& val )
   ERROR_MSG( "PyConnect::getVarType: c++ data type %s is not supported", demangled );
   return PyConnectType::COMPOSITE;
 }
-template <typename T> const char * getVarTypeName( const T& val )
+template <typename T> static const char * getVarTypeName( const T& val )
 {
 #ifndef _MSC_VER
   int status = 0;
@@ -248,6 +247,7 @@ template <> const char * getVarTypeName( const std::string& )
 {
   return "string";
 }
+#endif
 
 template <typename DataType> static int packToLENumber( const DataType & v, unsigned char * & dataPtr )
 {

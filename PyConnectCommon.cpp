@@ -425,7 +425,7 @@ std::string unpackString( unsigned char * & dataBufPtr, int & remainingBytes,
   return retVal;
 }
 
-PyConnectType::Type PyConnectType::typeName( const char * type )
+const PyConnectType::Type PyConnectType::typeName( const char * type )
 {
   if (strstr( type, "string" ))
     return STRING;
@@ -441,6 +441,32 @@ PyConnectType::Type PyConnectType::typeName( const char * type )
     return PyVOID;
   else
     return COMPOSITE;
+}
+
+const std::string PyConnectType::typeName( const Type type )
+{
+  switch (type) {
+    case INT:
+      return std::string( "integer" );
+      break;
+    case FLOAT:
+      return std::string( "float" );
+      break;
+    case DOUBLE:
+      return std::string( "double" );
+      break;
+    case STRING:
+      return std::string( "string" );
+      break;
+    case BOOL:
+      return std::string( "boolean" );
+      break;
+    case COMPOSITE:
+      return std::string( "composite object" );
+      break;
+    default:
+      return std::string( "unknown" );
+  }
 }
 
 #ifdef PYTHON_SERVER
