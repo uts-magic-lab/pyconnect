@@ -35,6 +35,8 @@
 #endif
 
 #include "Python.h"
+#else
+#include <tuple>
 #endif
 #include <string>
 #include <string.h>
@@ -183,6 +185,17 @@ struct PyConnectType {
 };
 
 #ifndef PYTHON_SERVER
+template <typename T>
+struct is_supported : std::false_type {};
+
+// Specialisations for supported types:
+template <> struct is_supported<int> : std::true_type {};
+template <> struct is_supported<float> : std::true_type {};
+template <> struct is_supported<double> : std::true_type {};
+template <> struct is_supported<bool> : std::true_type {};
+template <> struct is_supported<std::string> : std::true_type {};
+template <> struct is_supported<void> : std::true_type {};
+
 template <typename T> static const PyConnectType::Type getVarType( const T& val )
 {
 #ifndef _MSC_VER
