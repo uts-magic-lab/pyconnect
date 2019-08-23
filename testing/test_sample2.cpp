@@ -65,10 +65,10 @@ TestSample2::TestSample2() :
   PYCONNECT_RO_ATTRIBUTE_DECLARE( timeout, "timeout period for the timer" );
   PYCONNECT_RO_ATTRIBUTE_DECLARE( timerTriggerNo, "timer trigger" );
 
-  PYCONNECT_METHOD_DECLARE( enableTimer, bool, "enables the timer with specific timeout period",
+  PYCONNECT_METHOD_DECLARE( enableTimer, "enables the timer with specific timeout period",
     OPT_ARG( period, int, "timeout period in milliseconds" ) );
-  PYCONNECT_METHOD_DECLARE( disableTimer, void, "disable the timer" );
-  PYCONNECT_METHOD_DECLARE( quit, void, "stop program", );
+  PYCONNECT_METHOD_DECLARE( disableTimer, "disable the timer" );
+  PYCONNECT_METHOD_DECLARE( quit, "stop program", );
 
   FD_ZERO( &masterFDSet_ );
   PYCONNECT_NETCOMM_INIT;
@@ -93,6 +93,7 @@ bool TestSample2::enableTimer( int period )
     WARNING_MSG( "TestSample2::enableTimer: timer already enabled." );
     return true;
   }
+  printf( "TestSample2 timer enabled.\n" );
   gettimeofday( &nextTime_, NULL );
   TestSample2::addTimeInMS( nextTime_, period );
   timeout = period;
@@ -108,6 +109,7 @@ void TestSample2::disableTimer()
   }
   timerEnabled_ = false;
   timerTriggerNo = 0; // reset
+  printf( "TestSample2 timer disabled.\n" );
 }
 
 void TestSample2::processContinously()

@@ -197,6 +197,16 @@ template <> struct is_supported<bool> : std::true_type {};
 template <> struct is_supported<std::string> : std::true_type {};
 template <> struct is_supported<void> : std::true_type {};
 
+template <typename T, typename std::enable_if<is_supported<T>{}, int>::type = 0>
+struct pyconnect_type { static constexpr PyConnectType::Type value = PyConnectType::COMPOSITE; };
+
+template <> struct pyconnect_type<void> { static constexpr  PyConnectType::Type value = PyConnectType::PyVOID; };
+template <> struct pyconnect_type<bool> { static constexpr PyConnectType::Type value = PyConnectType::BOOL; };
+template <> struct pyconnect_type<int> { static constexpr PyConnectType::Type value = PyConnectType::INT; };
+template <> struct pyconnect_type<float> { static constexpr PyConnectType::Type value = PyConnectType::FLOAT; };
+template <> struct pyconnect_type<double> { static constexpr PyConnectType::Type value = PyConnectType::DOUBLE; };
+template <> struct pyconnect_type<std::string> { static constexpr PyConnectType::Type value = PyConnectType::STRING; };
+
 template <typename T> static const PyConnectType::Type getVarType( const T& val )
 {
 #ifndef _MSC_VER

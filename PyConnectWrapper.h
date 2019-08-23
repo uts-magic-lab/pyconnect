@@ -495,7 +495,7 @@ private:
     &PYCONNECT_MODULE_NAME::s_set_attr_##NAME )
 
 /* example void setHeadYaw( yaw, limit )
-  PYCONNECT_METHOD_DECLARE( setHeadYaw, void, 'set PyConnect head yaw'
+  PYCONNECT_METHOD_DECLARE( setHeadYaw, 'set PyConnect head yaw'
       ARG( yaw, float, 'current yaw value' )
       ARG( limit, float, 'current yaw limit' )      
     )
@@ -568,12 +568,15 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
       pyconnect::NO_PYCONNECT_OBJECT, metdIndex, 0, NULL, serverId );  \
   }
 
-#define PYCONNECT_METHOD_DECLARE( NAME, RETTYPE, DESC, ... )  \
+#define PYCONNECT_METHOD_DECLARE( NAME, DESC, ... )  \
   __VA_ARGS__                            \
-  pyconnect::PyConnectWrapper::instance()->addNewMethod( #NAME, DESC,  \
-    pyconnect::getVarType( RETTYPE ), &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
-    pyconnect::PyConnectWrapper::instance()->s_arglist );  \
-  pyconnect::PyConnectWrapper::instance()->s_arglist.clear()
+  { \
+    using fntraits = pyconnect::function_traits<decltype(&PYCONNECT_MODULE_NAME::NAME)>; \
+    pyconnect::PyConnectWrapper::instance()->addNewMethod( #NAME, DESC,  \
+      pyconnect::pyconnect_type<fntraits::return_type>::value, &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
+      pyconnect::PyConnectWrapper::instance()->s_arglist );  \
+    pyconnect::PyConnectWrapper::instance()->s_arglist.clear() \
+  }
 
 #else // !(WIN32 || SUN_COMPILER)
 #define PYCONNECT_METHOD_ACCESS( NAME, ARGLIST... )  \
@@ -616,12 +619,15 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
       pyconnect::NO_PYCONNECT_OBJECT, metdIndex, 0, NULL, serverId );  \
   }
 
-#define PYCONNECT_METHOD_DECLARE( NAME, RETTYPE, DESC, ARGLIST... )  \
+#define PYCONNECT_METHOD_DECLARE( NAME, DESC, ARGLIST... )  \
   ARGLIST                            \
-  pyconnect::PyConnectWrapper::instance()->addNewMethod( #NAME, DESC,  \
-    pyconnect::PyConnectType::typeName( #RETTYPE ), &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
-    pyconnect::PyConnectWrapper::instance()->s_arglist );  \
-  pyconnect::PyConnectWrapper::instance()->s_arglist.clear();
+  { \
+    using fntraits = pyconnect::function_traits<decltype(&PYCONNECT_MODULE_NAME::NAME)>; \
+    pyconnect::PyConnectWrapper::instance()->addNewMethod( #NAME, DESC,  \
+      pyconnect::pyconnect_type<fntraits::return_type>::value, &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
+      pyconnect::PyConnectWrapper::instance()->s_arglist );  \
+    pyconnect::PyConnectWrapper::instance()->s_arglist.clear(); \
+  }
 
 #endif // WIN32
 } // namespace pyconnect
