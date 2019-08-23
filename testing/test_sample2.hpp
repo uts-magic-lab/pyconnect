@@ -72,8 +72,8 @@ public:
   PYCONNECT_WRAPPER_DECLARE;
   
   PYCONNECT_METHOD_ACCESS( enableTimer, OPT_ARGTYPE( int, 500 ) );
-  PYCONNECT_METHOD_ACCESS_VOID_RETURN( disableTimer ); // NOTE: VS2005 doesn't seem to like passing no argument to variadic macro
-  PYCONNECT_METHOD_ACCESS_VOID_RETURN( quit );
+  PYCONNECT_METHOD_ACCESS( disableTimer );
+  PYCONNECT_METHOD_ACCESS( quit );
   PYCONNECT_RO_ATTRIBUTE( timeout );
   PYCONNECT_RO_ATTRIBUTE( timerTriggerNo );
 };

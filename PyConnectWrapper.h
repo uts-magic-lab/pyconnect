@@ -30,6 +30,8 @@
 #include <iterator>
 #include <map>
 #include <typeinfo>
+#include <type_traits>
+
 #ifdef OPENR_OBJECT
 #include <OPENR/OObject.h>
 #include <OPENR/OSyslog.h>
@@ -503,9 +505,9 @@ private:
   pyconnect::PyConnectWrapper::instance()->updateAttribute( #NAME, \
     static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME );
 
-#define ARGTYPE( DATATYPE ) pyconnect::PyConnectData<DATATYPE>::getData( dataStr, rBytes, status )
+#define ARGTYPE( DATATYPE ) (pyconnect::PyConnectData<DATATYPE>::getData( dataStr, rBytes, status ))
 #define OPT_ARGTYPE( DATATYPE, DEFAULTVALUE ) \
-  pyconnect::PyConnectData<DATATYPE>::getData( dataStr, rBytes, status, DEFAULTVALUE )
+  (pyconnect::PyConnectData<DATATYPE>::getData( dataStr, rBytes, status, DEFAULTVALUE ))
 
 #define ARG( NAME, TYPE, DESC )          \
   pyconnect::PyConnectWrapper::instance()->s_arglist.push_back(            \
@@ -513,6 +515,17 @@ private:
 #define OPT_ARG( NAME, TYPE, DESC )        \
   pyconnect::PyConnectWrapper::instance()->s_arglist.push_back(            \
     new pyconnect::Argument( #NAME, DESC, pyconnect::PyConnectType::typeName( #TYPE ), true ) );
+
+template <typename retval, typename T, typename std::enable_if<std::is_void<retval>{}, int>::type = 0> static void invoke_method_call( int metdIndex, int serverId, T fn )
+{
+  fn();
+}
+
+template <typename retval, typename T, typename std::enable_if<!std::is_void<retval>{}, int>::type = 0> static void invoke_method_call( int metdIndex, int serverId, T fn )
+{
+  pyconnect::PyConnectWrapper::instance()->postAttrMetdData( metdIndex, fn(),
+                                                    pyconnect::NO_ERRORS, serverId );
+}
 
 #if defined( WIN32 ) || defined( SUN_COMPILER )
 #define PYCONNECT_METHOD_ACCESS( NAME, ... )  \
@@ -523,55 +536,32 @@ private:
       pyconnect::PyConnectMsgStatus status =  \
         pyconnect::PyConnectWrapper::instance()->validateMethod( metdId, #NAME );  \
       if (status == pyconnect::NO_ERRORS) {  \
+        using fntraits = pyconnect::function_traits<decltype(&PYCONNECT_MODULE_NAME::NAME)>; \
         try { \
           if (pyconnect::PyConnectWrapper::instance()->noResponse()) { \
-            static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME( __VA_ARGS__ );  \
+            static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME( __VA_ARGS__ ); \
           } \
           else { \
-            pyconnect::PyConnectWrapper::instance()->postAttrMetdData(    \
-              metdIndex,    \
-              static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME( __VA_ARGS__ ),  \
-              pyconnect::NO_ERRORS, serverId );          \
+            auto fnc = std::bind( &PYCONNECT_MODULE_NAME::NAME, \
+              static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject()), \
+                           __VA_ARGS__ ); \
+            invoke_method_call<fntraits::return_type>( metdIndex, serverId, fnc ); \
           } \
         } \
         catch (...) { \
           ERROR_MSG( "Caught method %s throwing an exception.\n", #NAME ); \
           pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse(  \
             pyconnect::METD_EXCEPTION, metdIndex, 0, NULL, serverId );  \
-        }                \
-        return;          \
-      }                  \
-    }                    \
-    ERROR_MSG( "PyConnect wrapper: unable to access "  \
-      "correct object method.\n" );    \
-    pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse(  \
-      pyconnect::NO_PYCONNECT_OBJECT, metdIndex, 0, NULL, serverId );  \
-  }
-
-#define PYCONNECT_METHOD_ACCESS_VOID_RETURN( NAME, ... )  \
-  static void s_call_fn_##NAME( int metdId, unsigned char * & dataStr, int & rBytes, int serverId )  \
-  {                      \
-    int metdIndex = pyconnect::PyConnectWrapper::instance()->pyConnectModule()->attributes.size() + metdId; \
-    if (pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject()) {    \
-      pyconnect::PyConnectMsgStatus status =  \
-      pyconnect::PyConnectWrapper::instance()->validateMethod( metdId, #NAME );  \
-      if (status == pyconnect::NO_ERRORS) {  \
-        try { \
-          static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME( __VA_ARGS__ );  \
         } \
-        catch (...) { \
-          ERROR_MSG( "Caught method %s throwing an exception.\n", #NAME ); \
-          pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse(  \
-            pyconnect::METD_EXCEPTION, metdIndex, 0, NULL, serverId );  \
-          return; \
-        } \
-        if (!(pyconnect::PyConnectWrapper::instance()->noResponse())) { \
+        if (std::is_void<fntraits::return_type>::value && \
+            !(pyconnect::PyConnectWrapper::instance()->noResponse())) \
+        { \
           pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse( pyconnect::NO_ERRORS,        \
             metdIndex, 0, NULL, serverId );  \
         } \
-        return;         \
-      }                 \
-    }                   \
+        return;          \
+      }                  \
+    }                    \
     ERROR_MSG( "PyConnect wrapper: unable to access "  \
       "correct object method.\n" );    \
     pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse(  \
@@ -594,15 +584,16 @@ private:
       pyconnect::PyConnectMsgStatus status =  \
         pyconnect::PyConnectWrapper::instance()->validateMethod( metdId, #NAME );  \
       if (status == pyconnect::NO_ERRORS) {  \
+        using fntraits = pyconnect::function_traits<decltype(&PYCONNECT_MODULE_NAME::NAME)>; \
         try { \
           if (pyconnect::PyConnectWrapper::instance()->noResponse()) { \
-            static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME( ARGLIST );  \
+            static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME( ARGLIST ); \
           } \
           else { \
-            pyconnect::PyConnectWrapper::instance()->postAttrMetdData(    \
-              metdIndex,    \
-              static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME( ARGLIST ),  \
-              pyconnect::NO_ERRORS, serverId );          \
+            auto fnc = std::bind( &PYCONNECT_MODULE_NAME::NAME, \
+              static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject()), \
+                           ##ARGLIST ); \
+            invoke_method_call<fntraits::return_type>( metdIndex, serverId, fnc ); \
           } \
         } \
         catch (...) { \
@@ -610,7 +601,13 @@ private:
           pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse(  \
             pyconnect::METD_EXCEPTION, metdIndex, 0, NULL, serverId );  \
         } \
-        return;              \
+        if (std::is_void<fntraits::return_type>::value && \
+            !(pyconnect::PyConnectWrapper::instance()->noResponse())) \
+        { \
+          pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse( pyconnect::NO_ERRORS,        \
+            metdIndex, 0, NULL, serverId );  \
+        } \
+        return;          \
       }                  \
     }                    \
     ERROR_MSG( "PyConnect wrapper: unable to access "  \
@@ -618,36 +615,6 @@ private:
     pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse(  \
       pyconnect::NO_PYCONNECT_OBJECT, metdIndex, 0, NULL, serverId );  \
   }
-
-#define PYCONNECT_METHOD_ACCESS_VOID_RETURN( NAME, ARGLIST... )  \
-  static void s_call_fn_##NAME( int metdId, unsigned char * & dataStr, int & rBytes, int serverId )  \
-  {                      \
-    int metdIndex = pyconnect::PyConnectWrapper::instance()->pyConnectModule()->attributes.size() + metdId; \
-    if (pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject()) {    \
-      pyconnect::PyConnectMsgStatus status =  \
-      pyconnect::PyConnectWrapper::instance()->validateMethod( metdId, #NAME );  \
-      if (status == pyconnect::NO_ERRORS) {  \
-        try { \
-          static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME( ARGLIST );  \
-        } \
-        catch (...) { \
-          ERROR_MSG( "Caught method %s throwing an exception.\n", #NAME ); \
-          pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse(  \
-            pyconnect::METD_EXCEPTION, metdIndex, 0, NULL, serverId );  \
-          return; \
-        } \
-        if (!(pyconnect::PyConnectWrapper::instance()->noResponse())) { \
-          pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse( pyconnect::NO_ERRORS,        \
-            metdIndex, 0, NULL, serverId );  \
-        } \
-        return;         \
-      }                 \
-    }                   \
-    ERROR_MSG( "PyConnect wrapper: unable to access "  \
-      "correct object method.\n" );    \
-    pyconnect::PyConnectWrapper::instance()->sendAttrMetdResponse(  \
-      pyconnect::NO_PYCONNECT_OBJECT, metdIndex, 0, NULL, serverId );  \
-}
 
 #define PYCONNECT_METHOD_DECLARE( NAME, RETTYPE, DESC, ARGLIST... )  \
   ARGLIST                            \

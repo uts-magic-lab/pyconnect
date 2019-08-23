@@ -37,6 +37,7 @@
 #include "Python.h"
 #else
 #include <tuple>
+#include <functional>
 #endif
 #include <string>
 #include <string.h>
@@ -308,6 +309,16 @@ struct function_traits<R(C&,Args...)>
     using type = typename std::tuple_element<N,std::tuple<Args...>>::type;
   };
 };
+
+template<std::size_t N, typename std::enable_if<!N, int>::type = 0, typename R, typename C, typename... Args> static
+std::function<R(Args...)> custom_bind(R(C::* func)(Args...), C& instance) {
+    return [=](Args... args){ return (instance.*func)(args...); };
+}
+
+template<std::size_t N, typename std::enable_if<!N, int>::type = 0, typename R, typename C, typename... Args> static
+std::function<R(Args...)> custom_bind(R (C::* func)(Args...) const, C const& instance) {
+    return [=](Args... args){ return (instance.*func)(args...); };
+}
 #endif
 
 template <typename DataType> static int packToLENumber( const DataType & v, unsigned char * & dataPtr )
