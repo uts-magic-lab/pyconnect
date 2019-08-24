@@ -46,6 +46,8 @@ elif osname == 'posix':
     f.close()
     if myos == 'Darwin' or myos.endswith( 'BSD' ):
       macro.append(('BSD_COMPAT', None))
+      inc_dirs = ['/usr/local/opt/openssl/include']
+      lib_dirs = ['/usr/local/opt/openssl/lib']
     elif myos == 'SunOS':
       macro.append(('SOLARIS', None))
     elif myos == 'Linux':

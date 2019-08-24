@@ -623,7 +623,7 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
   { \
     using fntraits = pyconnect::function_traits<std::function<decltype(&PYCONNECT_MODULE_NAME::NAME)>>; \
     std::vector<int> argtypelist; \
-    get_args_type_list<fntraits>(std::make_index_sequence<fntraits::arity>{}, argtypelist);  \
+    get_args_type_list<fntraits>(pyconnect::make_index_sequence<fntraits::arity>{}, argtypelist);  \
     int asize = (int)argtypelist.size(); \
     printf("total number of arguments %d\n", asize); \
     for (int i = 0; i < asize; ++i) { \

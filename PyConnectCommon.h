@@ -40,6 +40,7 @@
 #else
 #include <tuple>
 #include <functional>
+#include <vector>
 #endif
 #include <string>
 #include <string.h>
@@ -273,6 +274,10 @@ template <> const char * getVarTypeName( const std::string& )
   return "string";
 }
 
+template <std::size_t...> struct index_sequence {};
+template <std::size_t N, std::size_t... Is> struct make_index_sequence : make_index_sequence<N-1, N-1, Is...> {};
+template <std::size_t... Is> struct make_index_sequence<0, Is...> : index_sequence<Is...> {};
+
 template<class F>
 struct function_traits;
  
@@ -362,13 +367,13 @@ auto get_arg_types( std::vector<int> & atlist )
 }
 
 template <typename F, typename std::enable_if<(F::arity > 0), int>::type = 0, std::size_t... Is>
-void get_args_type_list(std::index_sequence<Is...>, std::vector<int> & rtl)
+void get_args_type_list(pyconnect::index_sequence<Is...>, std::vector<int> & rtl)
 {
     get_arg_types<F::arity, typename F::return_type, typename F::template argument<Is>::type...>(rtl);
 }
 
 template <typename F, typename std::enable_if<(F::arity == 0), int>::type = 0, std::size_t... Is>
-void get_args_type_list(std::index_sequence<Is...>, std::vector<int> & rtl)
+void get_args_type_list(pyconnect::index_sequence<Is...>, std::vector<int> & rtl)
 {
 }
 

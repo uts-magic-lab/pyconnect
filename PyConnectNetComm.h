@@ -216,7 +216,7 @@ private:
   bool  IPCCommEnabled_;
   bool  invalidUDPSock_;
   bool  keepRunning_;
-  short portInUse_;
+  unsigned short portInUse_;
 #ifdef USE_MULTICAST
   struct ip_mreq multiCastReq_;
 #endif
