@@ -536,7 +536,7 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
       pyconnect::PyConnectMsgStatus status =  \
         pyconnect::PyConnectWrapper::instance()->validateMethod( metdId, #NAME );  \
       if (status == pyconnect::NO_ERRORS) {  \
-        using fntraits = pyconnect::function_traits<decltype(&PYCONNECT_MODULE_NAME::NAME)>; \
+        using fntraits = pyconnect::function_traits<std::function<decltype(&PYCONNECT_MODULE_NAME::NAME)>>; \
         try { \
           if (pyconnect::PyConnectWrapper::instance()->noResponse()) { \
             static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME( __VA_ARGS__ ); \
@@ -573,7 +573,7 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
   { \
     using fntraits = pyconnect::function_traits<decltype(&PYCONNECT_MODULE_NAME::NAME)>; \
     pyconnect::PyConnectWrapper::instance()->addNewMethod( #NAME, DESC,  \
-      pyconnect::pyconnect_type<fntraits::return_type>::value, &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
+      pyconnect::pyconnect_type<std::function<fntraits::return_type>>::value, &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
       pyconnect::PyConnectWrapper::instance()->s_arglist );  \
     pyconnect::PyConnectWrapper::instance()->s_arglist.clear() \
   }
@@ -587,7 +587,7 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
       pyconnect::PyConnectMsgStatus status =  \
         pyconnect::PyConnectWrapper::instance()->validateMethod( metdId, #NAME );  \
       if (status == pyconnect::NO_ERRORS) {  \
-        using fntraits = pyconnect::function_traits<decltype(&PYCONNECT_MODULE_NAME::NAME)>; \
+        using fntraits = pyconnect::function_traits<std::function<decltype(&PYCONNECT_MODULE_NAME::NAME)>>; \
         try { \
           if (pyconnect::PyConnectWrapper::instance()->noResponse()) { \
             static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME( ARGLIST ); \
@@ -619,10 +619,17 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
       pyconnect::NO_PYCONNECT_OBJECT, metdIndex, 0, NULL, serverId );  \
   }
 
-#define PYCONNECT_METHOD_DECLARE( NAME, DESC, ARGLIST... )  \
-  ARGLIST                            \
+#define PYCONNECT_METHOD_DECLARE( NAME, DESC )  \
   { \
-    using fntraits = pyconnect::function_traits<decltype(&PYCONNECT_MODULE_NAME::NAME)>; \
+    using fntraits = pyconnect::function_traits<std::function<decltype(&PYCONNECT_MODULE_NAME::NAME)>>; \
+    std::vector<int> argtypelist; \
+    get_args_type_list<fntraits>(std::make_index_sequence<fntraits::arity>{}, argtypelist);  \
+    int asize = (int)argtypelist.size(); \
+    printf("total number of arguments %d\n", asize); \
+    for (int i = 0; i < asize; ++i) { \
+      pyconnect::PyConnectWrapper::instance()->s_arglist.push_back(  \
+        new pyconnect::Argument( "", "", (pyconnect::PyConnectType::Type)argtypelist[asize-i-1] ) ); \
+    } \
     pyconnect::PyConnectWrapper::instance()->addNewMethod( #NAME, DESC,  \
       pyconnect::pyconnect_type<fntraits::return_type>::value, &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
       pyconnect::PyConnectWrapper::instance()->s_arglist );  \

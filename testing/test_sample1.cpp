@@ -41,16 +41,12 @@ TestSample1::TestSample1() :
   PYCONNECT_RO_ATTRIBUTE_DECLARE( myString, "saved concated string" );
 
   PYCONNECT_METHOD_DECLARE( helloWorld, "hello world method" );
-  PYCONNECT_METHOD_DECLARE( testBoolean, "test boolean", ARG( good, bool, "boolean" ));
-  PYCONNECT_METHOD_DECLARE( printThisText, "prints a input text", ARG( text, std::string, "text string" ) );
-  PYCONNECT_METHOD_DECLARE( doAddition, "add two integers", ARG( a, int, "integer a" ) \
-                         ARG( b, int, "integer b" ) );
-  PYCONNECT_METHOD_DECLARE( doMultiply, "multiple two float numbers", ARG( a, float, "float a" ) \
-                         ARG( b, float, "float b" ) );
-  PYCONNECT_METHOD_DECLARE( doDivision, "divide two float number", ARG( a, float, "float a" ) \
-                         ARG( b, float, "float b" ) );
-  PYCONNECT_METHOD_DECLARE( concateString, "concatated string", ARG( a, std:string, "string a" ) \
-                           ARG( b, std::string, "string b" ) );
+  PYCONNECT_METHOD_DECLARE( testBoolean, "test boolean" );
+  PYCONNECT_METHOD_DECLARE( printThisText, "prints a input text" );
+  PYCONNECT_METHOD_DECLARE( doAddition, "add two integers" );
+  PYCONNECT_METHOD_DECLARE( doMultiply, "multiple two float numbers" );
+  PYCONNECT_METHOD_DECLARE( doDivision, "divide two float number" );
+  //PYCONNECT_METHOD_DECLARE( concateString, "concatated string" );
 
   PYCONNECT_NETCOMM_INIT;
   PYCONNECT_NETCOMM_ENABLE_NET;

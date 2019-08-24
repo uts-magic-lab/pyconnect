@@ -65,10 +65,9 @@ TestSample2::TestSample2() :
   PYCONNECT_RO_ATTRIBUTE_DECLARE( timeout, "timeout period for the timer" );
   PYCONNECT_RO_ATTRIBUTE_DECLARE( timerTriggerNo, "timer trigger" );
 
-  PYCONNECT_METHOD_DECLARE( enableTimer, "enables the timer with specific timeout period",
-    OPT_ARG( period, int, "timeout period in milliseconds" ) );
+  PYCONNECT_METHOD_DECLARE( enableTimer, "enables the timer with specific timeout period" );
   PYCONNECT_METHOD_DECLARE( disableTimer, "disable the timer" );
-  PYCONNECT_METHOD_DECLARE( quit, "stop program", );
+  PYCONNECT_METHOD_DECLARE( quit, "stop program" );
 
   FD_ZERO( &masterFDSet_ );
   PYCONNECT_NETCOMM_INIT;
