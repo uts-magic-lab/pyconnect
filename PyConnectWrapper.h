@@ -398,7 +398,7 @@ private:
   MessageProcessor * getMP() { return pyconnect::PyConnectWrapper::instance(); }  \
   void dummy0()
 
-#define PYCONNECT_DECLARE_MODULE( NAME, DESC )              \
+#define EXPORT_PYCONNECT_MODULE( NAME, DESC )              \
   pyconnect::PyConnectWrapper::init( new pyconnect::PyConnectModule( #NAME, DESC, this ) )
 
 #define PYCONNECT_MODULE_INIT  \
@@ -435,7 +435,7 @@ private:
   }                      \
   void dummy_##NAME()
 
-#define PYCONNECT_RO_ATTRIBUTE_DECLARE( NAME, DESC )    \
+#define EXPORT_PYCONNECT_RO_ATTRIBUTE( NAME, DESC )    \
   pyconnect::PyConnectWrapper::instance()->addNewAttribute( #NAME, DESC,  \
     pyconnect::getVarType( NAME ), &PYCONNECT_MODULE_NAME::s_get_raw_value_##NAME, \
     &PYCONNECT_MODULE_NAME::s_get_attr_##NAME, NULL );
@@ -488,18 +488,15 @@ private:
   }                      \
   void dummy_##NAME()
 
-#define PYCONNECT_RW_ATTRIBUTE_DECLARE( NAME, DESC )  \
+#define EXPORT_PYCONNECT_RW_ATTRIBUTE( NAME, DESC )  \
   pyconnect::PyConnectWrapper::instance()->addNewAttribute( #NAME, DESC, \
     pyconnect::getVarType( NAME ), &PYCONNECT_MODULE_NAME::s_get_raw_value_##NAME, \
     &PYCONNECT_MODULE_NAME::s_get_attr_##NAME, \
     &PYCONNECT_MODULE_NAME::s_set_attr_##NAME )
 
 /* example void setHeadYaw( yaw, limit )
-  PYCONNECT_METHOD_DECLARE( setHeadYaw, 'set PyConnect head yaw'
-      ARG( yaw, float, 'current yaw value' )
-      ARG( limit, float, 'current yaw limit' )      
-    )
-  PYCONNECT_METHOD_ACCESS( setHeadYaw, ARGTYPE( float ), ARGTYPE( HeadMove ), ARGTYPE( float ) )
+  EXPORT_PYCONNECT_METHOD( setHeadYaw, 'set PyConnect head yaw' );
+  PYCONNECT_METHOD( setHeadYaw, ARGTYPE( float ), ARGTYPE( HeadMove ), ARGTYPE( float ) );
 */
 #define PYCONNECT_ATTRIBUTE_UPDATE( NAME )    \
   pyconnect::PyConnectWrapper::instance()->updateAttribute( #NAME, \
@@ -508,13 +505,6 @@ private:
 #define ARGTYPE( DATATYPE ) (pyconnect::PyConnectData<DATATYPE>::getData( dataStr, rBytes, status ))
 #define OPT_ARGTYPE( DATATYPE, DEFAULTVALUE ) \
   (pyconnect::PyConnectData<DATATYPE>::getData( dataStr, rBytes, status, DEFAULTVALUE ))
-
-#define ARG( NAME, TYPE, DESC )          \
-  pyconnect::PyConnectWrapper::instance()->s_arglist.push_back(            \
-    new pyconnect::Argument( #NAME, DESC, pyconnect::PyConnectType::typeName( #TYPE ) ) );
-#define OPT_ARG( NAME, TYPE, DESC )        \
-  pyconnect::PyConnectWrapper::instance()->s_arglist.push_back(            \
-    new pyconnect::Argument( #NAME, DESC, pyconnect::PyConnectType::typeName( #TYPE ), true ) );
 
 template <typename retval, typename T, typename std::enable_if<std::is_void<retval>{}, int>::type = 0> static void invoke_method_call( int metdIndex, int serverId, T fn )
 {
@@ -528,7 +518,7 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
 }
 
 #if defined( WIN32 ) || defined( SUN_COMPILER )
-#define PYCONNECT_METHOD_ACCESS( NAME, ... )  \
+#define PYCONNECT_METHOD( NAME, ... )  \
   static void s_call_fn_##NAME( int metdId, unsigned char * & dataStr, int & rBytes, int serverId )        \
   {                      \
     int metdIndex = pyconnect::PyConnectWrapper::instance()->pyConnectModule()->attributes.size() + metdId; \
@@ -568,18 +558,24 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
       pyconnect::NO_PYCONNECT_OBJECT, metdIndex, 0, NULL, serverId );  \
   }
 
-#define PYCONNECT_METHOD_DECLARE( NAME, DESC, ... )  \
-  __VA_ARGS__                            \
+#define EXPORT_PYCONNECT_METHOD( NAME, DESC )  \
   { \
-    using fntraits = pyconnect::function_traits<decltype(&PYCONNECT_MODULE_NAME::NAME)>; \
+    using fntraits = pyconnect::function_traits<std::function<decltype(&PYCONNECT_MODULE_NAME::NAME)>>; \
+    std::vector<int> argtypelist; \
+    get_args_type_list<fntraits>(pyconnect::make_index_sequence<fntraits::arity>{}, argtypelist);  \
+    int asize = (int)argtypelist.size(); \
+    for (int i = 0; i < asize; ++i) { \
+      pyconnect::PyConnectWrapper::instance()->s_arglist.push_back(  \
+        new pyconnect::Argument( "", "", (pyconnect::PyConnectType::Type)argtypelist[asize-i-1] ) ); \
+    } \
     pyconnect::PyConnectWrapper::instance()->addNewMethod( #NAME, DESC,  \
-      pyconnect::pyconnect_type<std::function<fntraits::return_type>>::value, &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
+      pyconnect::pyconnect_type<fntraits::return_type>::value, &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
       pyconnect::PyConnectWrapper::instance()->s_arglist );  \
-    pyconnect::PyConnectWrapper::instance()->s_arglist.clear() \
+    pyconnect::PyConnectWrapper::instance()->s_arglist.clear(); \
   }
 
 #else // !(WIN32 || SUN_COMPILER)
-#define PYCONNECT_METHOD_ACCESS( NAME, ARGLIST... )  \
+#define PYCONNECT_METHOD( NAME, ARGLIST... )  \
   static void s_call_fn_##NAME( int metdId, unsigned char * & dataStr, int & rBytes, int serverId )        \
   {                      \
     int metdIndex = pyconnect::PyConnectWrapper::instance()->pyConnectModule()->attributes.size() + metdId; \
@@ -619,13 +615,12 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
       pyconnect::NO_PYCONNECT_OBJECT, metdIndex, 0, NULL, serverId );  \
   }
 
-#define PYCONNECT_METHOD_DECLARE( NAME, DESC )  \
+#define EXPORT_PYCONNECT_METHOD( NAME, DESC )  \
   { \
     using fntraits = pyconnect::function_traits<std::function<decltype(&PYCONNECT_MODULE_NAME::NAME)>>; \
     std::vector<int> argtypelist; \
     get_args_type_list<fntraits>(pyconnect::make_index_sequence<fntraits::arity>{}, argtypelist);  \
     int asize = (int)argtypelist.size(); \
-    printf("total number of arguments %d\n", asize); \
     for (int i = 0; i < asize; ++i) { \
       pyconnect::PyConnectWrapper::instance()->s_arglist.push_back(  \
         new pyconnect::Argument( "", "", (pyconnect::PyConnectType::Type)argtypelist[asize-i-1] ) ); \

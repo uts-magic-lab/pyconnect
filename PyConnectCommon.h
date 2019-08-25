@@ -190,6 +190,17 @@ struct PyConnectType {
 
 #ifndef PYTHON_SERVER
 template <typename T>
+struct is_string
+{
+  static constexpr bool value = false;
+};
+template <class T, class Traits, class Alloc>
+struct is_string<std::__cxx11::basic_string<T, Traits, Alloc>>
+{
+  static constexpr bool value = true;
+};
+
+template <typename T>
 struct is_supported : std::false_type {};
 
 // Specialisations for supported types:
@@ -198,16 +209,20 @@ template <> struct is_supported<float> : std::true_type {};
 template <> struct is_supported<double> : std::true_type {};
 template <> struct is_supported<bool> : std::true_type {};
 template <> struct is_supported<void> : std::true_type {};
+template <> struct is_supported<std::string> : std::true_type {};
 
-//template <typename T, typename std::enable_if<is_supported<T>{}, int>::type = 0>
-template <typename T>
-struct pyconnect_type { static constexpr PyConnectType::Type value = PyConnectType::COMPOSITE; };
-
+template <typename T, typename std::enable_if<is_supported<T>{}, int>::type = 0>
+struct pyconnect_type
+{
+  //static_assert( false, "not supported data type" );
+  static constexpr PyConnectType::Type value = PyConnectType::COMPOSITE;
+};
 template <> struct pyconnect_type<void> { static constexpr  PyConnectType::Type value = PyConnectType::PyVOID; };
 template <> struct pyconnect_type<bool> { static constexpr PyConnectType::Type value = PyConnectType::BOOL; };
 template <> struct pyconnect_type<int> { static constexpr PyConnectType::Type value = PyConnectType::INT; };
 template <> struct pyconnect_type<float> { static constexpr PyConnectType::Type value = PyConnectType::FLOAT; };
 template <> struct pyconnect_type<double> { static constexpr PyConnectType::Type value = PyConnectType::DOUBLE; };
+template <> struct pyconnect_type<std::string> { static constexpr PyConnectType::Type value = PyConnectType::STRING; };
 
 template <typename T> static const PyConnectType::Type getVarType( const T& val )
 {
@@ -341,35 +356,24 @@ template <size_t ArgIdx, typename R, typename... Args>
 auto get_arg_types( std::vector<int> & atlist ) 
     -> typename std::enable_if<ArgIdx == 1>::type
 {
-    using fun = function_traits<std::function<R(Args...)>>;
-    //std::cout << "A: " << std::is_same<typename std::remove_reference<typename fun::template argument<0>::type>::type, std::string>::value << std::endl;
-    int status = 0;
-    std::string demangled = abi::__cxa_demangle( typeid(typename fun::template argument<ArgIdx-1>::type).name(), 0, 0, &status );
-    std::cout << "arg 0 " << demangled << " is the same as string " << \
-        std::is_same<typename fun::template argument<0>::type, typename std::string::value_type>::value << std::endl;
- 
-    atlist.push_back(pyconnect::pyconnect_type<typename fun::template argument<0>::type>::value);
+  using fun = function_traits<std::function<R(Args...)>>; 
+  atlist.push_back(pyconnect::pyconnect_type<typename std::decay<typename fun::template argument<0>::type>::type>::value);
 }
 
 template <size_t ArgIdx, typename R, typename... Args>
 auto get_arg_types( std::vector<int> & atlist ) 
     -> typename std::enable_if<(ArgIdx != 1)>::type
 {
-    using fun = function_traits<std::function<R(Args...)>>;
-    int status = 0;
-    std::string demangled = abi::__cxa_demangle( typeid(typename fun::template argument<ArgIdx-1>::type).name(), 0, 0, &status );
-    std::cout << "arg " << ArgIdx-1 << " " << demangled << " is the same as string " << \
-        std::is_same<typename std::remove_reference<typename fun::template argument<0>::type>::type, std::string>::value << std::endl;
+  using fun = function_traits<std::function<R(Args...)>>;
+  atlist.push_back(pyconnect::pyconnect_type<typename std::decay<typename fun::template argument<ArgIdx-1>::type>::type>::value);
 
-    atlist.push_back(pyconnect::pyconnect_type<typename fun::template argument<ArgIdx-1>::type>::value);
-
-    get_arg_types<ArgIdx - 1, R, Args...>(atlist);
+  get_arg_types<ArgIdx - 1, R, Args...>(atlist);
 }
 
 template <typename F, typename std::enable_if<(F::arity > 0), int>::type = 0, std::size_t... Is>
 void get_args_type_list(pyconnect::index_sequence<Is...>, std::vector<int> & rtl)
 {
-    get_arg_types<F::arity, typename F::return_type, typename F::template argument<Is>::type...>(rtl);
+  get_arg_types<F::arity, typename F::return_type, typename F::template argument<Is>::type...>(rtl);
 }
 
 template <typename F, typename std::enable_if<(F::arity == 0), int>::type = 0, std::size_t... Is>

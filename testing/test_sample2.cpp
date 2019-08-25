@@ -61,13 +61,13 @@ TestSample2::TestSample2() :
   maxFD_( 0 ),
   timerEnabled_( false )
 {
-  PYCONNECT_DECLARE_MODULE( TestSample2, "A simple timer program that uses PyConnect framework." );
-  PYCONNECT_RO_ATTRIBUTE_DECLARE( timeout, "timeout period for the timer" );
-  PYCONNECT_RO_ATTRIBUTE_DECLARE( timerTriggerNo, "timer trigger" );
+  EXPORT_PYCONNECT_MODULE( TestSample2, "A simple timer program that uses PyConnect framework." );
+  EXPORT_PYCONNECT_RO_ATTRIBUTE( timeout, "timeout period for the timer" );
+  EXPORT_PYCONNECT_RO_ATTRIBUTE( timerTriggerNo, "timer trigger" );
 
-  PYCONNECT_METHOD_DECLARE( enableTimer, "enables the timer with specific timeout period" );
-  PYCONNECT_METHOD_DECLARE( disableTimer, "disable the timer" );
-  PYCONNECT_METHOD_DECLARE( quit, "stop program" );
+  EXPORT_PYCONNECT_METHOD( enableTimer, "enables the timer with specific timeout period" );
+  EXPORT_PYCONNECT_METHOD( disableTimer, "disable the timer" );
+  EXPORT_PYCONNECT_METHOD( quit, "stop program" );
 
   FD_ZERO( &masterFDSet_ );
   PYCONNECT_NETCOMM_INIT;

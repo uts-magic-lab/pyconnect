@@ -47,7 +47,7 @@ public:
   ~TestSample1();
   
   void helloWorld();
-  void printThisText( const std::string & text );
+  void printThisText( const std::string& text );
   int doAddition( int a, int b );
   double doMultiply( float a, float b );
   float doDivision( float a, float b );
@@ -62,13 +62,13 @@ public:
   PYCONNECT_NETCOMM_DECLARE;
   PYCONNECT_WRAPPER_DECLARE;
   
-  PYCONNECT_METHOD_ACCESS( helloWorld );
-  PYCONNECT_METHOD_ACCESS( testBoolean, ARGTYPE( bool ) );
-  PYCONNECT_METHOD_ACCESS( printThisText, ARGTYPE( std::string ) );
-  PYCONNECT_METHOD_ACCESS( doAddition, ARGTYPE( int ), ARGTYPE( int ) );
-  PYCONNECT_METHOD_ACCESS( doMultiply, ARGTYPE( float ), ARGTYPE( float ) );
-  PYCONNECT_METHOD_ACCESS( doDivision, ARGTYPE( float ), ARGTYPE( float ) );
-  //PYCONNECT_METHOD_ACCESS( concateString, ARGTYPE( std::string ), ARGTYPE( std::string ) );
+  PYCONNECT_METHOD( helloWorld );
+  PYCONNECT_METHOD( testBoolean, ARGTYPE( bool ) );
+  PYCONNECT_METHOD( printThisText, ARGTYPE( std::string ) );
+  PYCONNECT_METHOD( doAddition, ARGTYPE( int ), ARGTYPE( int ) );
+  PYCONNECT_METHOD( doMultiply, ARGTYPE( float ), ARGTYPE( float ) );
+  PYCONNECT_METHOD( doDivision, ARGTYPE( float ), ARGTYPE( float ) );
+  PYCONNECT_METHOD( concateString, ARGTYPE( std::string ), ARGTYPE( std::string ) );
 
   PYCONNECT_RO_ATTRIBUTE( methodCalls );
   PYCONNECT_RO_ATTRIBUTE( myString );

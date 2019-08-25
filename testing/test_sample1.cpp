@@ -35,18 +35,18 @@ TestSample1::TestSample1() :
   methodCalls( 0 ),
   myString( "my test" )
 {
-  PYCONNECT_DECLARE_MODULE( TestSample1, "A simple test program that uses PyConnect framework." );
+  EXPORT_PYCONNECT_MODULE( TestSample1, "A simple test program that uses PyConnect framework." );
 
-  PYCONNECT_RO_ATTRIBUTE_DECLARE( methodCalls, "number of method calls so far" );
-  PYCONNECT_RO_ATTRIBUTE_DECLARE( myString, "saved concated string" );
+  EXPORT_PYCONNECT_RO_ATTRIBUTE( methodCalls, "number of method calls so far" );
+  EXPORT_PYCONNECT_RO_ATTRIBUTE( myString, "saved concated string" );
 
-  PYCONNECT_METHOD_DECLARE( helloWorld, "hello world method" );
-  PYCONNECT_METHOD_DECLARE( testBoolean, "test boolean" );
-  PYCONNECT_METHOD_DECLARE( printThisText, "prints a input text" );
-  PYCONNECT_METHOD_DECLARE( doAddition, "add two integers" );
-  PYCONNECT_METHOD_DECLARE( doMultiply, "multiple two float numbers" );
-  PYCONNECT_METHOD_DECLARE( doDivision, "divide two float number" );
-  //PYCONNECT_METHOD_DECLARE( concateString, "concatated string" );
+  EXPORT_PYCONNECT_METHOD( helloWorld, "hello world method" );
+  EXPORT_PYCONNECT_METHOD( testBoolean, "test boolean" );
+  EXPORT_PYCONNECT_METHOD( printThisText, "prints a input text" );
+  EXPORT_PYCONNECT_METHOD( doAddition, "add two integers" );
+  EXPORT_PYCONNECT_METHOD( doMultiply, "multiple two float numbers" );
+  EXPORT_PYCONNECT_METHOD( doDivision, "divide two float number" );
+  EXPORT_PYCONNECT_METHOD( concateString, "concatated string" );
 
   PYCONNECT_NETCOMM_INIT;
   PYCONNECT_NETCOMM_ENABLE_NET;
@@ -66,7 +66,7 @@ void TestSample1::helloWorld()
   PYCONNECT_ATTRIBUTE_UPDATE( methodCalls );
 }
 
-void TestSample1::printThisText( const std::string & text )
+void TestSample1::printThisText( const std::string& text )
 {
   printf( "Incoming test message %s\n", text.c_str() );
   methodCalls++;
