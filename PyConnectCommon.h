@@ -195,7 +195,7 @@ struct is_string
   static constexpr bool value = false;
 };
 template <class T, class Traits, class Alloc>
-struct is_string<std::__cxx11::basic_string<T, Traits, Alloc>>
+struct is_string<std::basic_string<T, Traits, Alloc>>
 {
   static constexpr bool value = true;
 };
@@ -214,9 +214,9 @@ template <> struct is_supported<std::string> : std::true_type {};
 template <typename T, typename std::enable_if<is_supported<T>{}, int>::type = 0>
 struct pyconnect_type
 {
-  //static_assert( false, "not supported data type" );
   static constexpr PyConnectType::Type value = PyConnectType::COMPOSITE;
 };
+
 template <> struct pyconnect_type<void> { static constexpr  PyConnectType::Type value = PyConnectType::PyVOID; };
 template <> struct pyconnect_type<bool> { static constexpr PyConnectType::Type value = PyConnectType::BOOL; };
 template <> struct pyconnect_type<int> { static constexpr PyConnectType::Type value = PyConnectType::INT; };
@@ -289,10 +289,6 @@ template <> const char * getVarTypeName( const std::string& )
   return "string";
 }
 
-template <std::size_t...> struct index_sequence {};
-template <std::size_t N, std::size_t... Is> struct make_index_sequence : make_index_sequence<N-1, N-1, Is...> {};
-template <std::size_t... Is> struct make_index_sequence<0, Is...> : index_sequence<Is...> {};
-
 template<class F>
 struct function_traits;
  
@@ -361,13 +357,13 @@ auto get_arg_types( std::vector<int> & atlist )
 }
 
 template <typename F, typename std::enable_if<(F::arity > 0), int>::type = 0, std::size_t... Is>
-void get_args_type_list(pyconnect::index_sequence<Is...>, std::vector<int> & rtl)
+void get_args_type_list(std::index_sequence<Is...>, std::vector<int> & rtl)
 {
   get_arg_types<F::arity, typename F::return_type, typename F::template argument<Is>::type...>(rtl);
 }
 
 template <typename F, typename std::enable_if<(F::arity == 0), int>::type = 0, std::size_t... Is>
-void get_args_type_list(pyconnect::index_sequence<Is...>, std::vector<int> & rtl)
+void get_args_type_list(std::index_sequence<Is...>, std::vector<int> & rtl)
 {
 }
 

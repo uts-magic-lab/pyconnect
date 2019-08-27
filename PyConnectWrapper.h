@@ -513,7 +513,7 @@ private:
 template<typename Ft, typename Func, typename Obj, std::size_t... index> 
 static
 auto custom_bind_helper(Func&& func, Obj&& obj, unsigned char * & dataStr, int & rBytes, 
-                          PyConnectMsgStatus & status, pyconnect::index_sequence<index...>)
+                          PyConnectMsgStatus & status, std::index_sequence<index...>)
 {
   return std::bind( func, obj, pyconnect::PyConnectData<typename std::decay<typename Ft::template argument<index>::type>::type>::getData( dataStr, rBytes, status )... );
 }
@@ -523,7 +523,7 @@ static
 auto custom_bind( Func&& func, Obj obj, unsigned char * & dataStr, int & rBytes, PyConnectMsgStatus & status )
 {
   return custom_bind_helper<Ft>(std::forward<Func>(func), std::forward<Obj>(obj), dataStr, rBytes, status,
-                        pyconnect::make_index_sequence<Ft::arity>{});
+                        std::make_index_sequence<Ft::arity>{});
 }
 
 template <typename Ft, typename Func, typename Obj, typename std::enable_if<(Ft::arity == 0), int>::type = 0> 
@@ -595,7 +595,7 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
   { \
     using fntraits = pyconnect::function_traits<std::function<decltype(&PYCONNECT_MODULE_NAME::NAME)>>; \
     std::vector<int> argtypelist; \
-    get_args_type_list<fntraits>(pyconnect::make_index_sequence<fntraits::arity>{}, argtypelist);  \
+    get_args_type_list<fntraits>(std::make_index_sequence<fntraits::arity>{}, argtypelist);  \
     int asize = (int)argtypelist.size(); \
     for (int i = 0; i < asize; ++i) { \
       pyconnect::PyConnectWrapper::instance()->s_arglist.push_back(  \

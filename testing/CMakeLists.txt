@@ -4,7 +4,7 @@ project( pyconnect_testing )
 add_definitions(-DRELEASE)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-add_definitions(-DBSD_COMPAT -std=c++11)
+add_definitions(-DBSD_COMPAT -std=c++14)
 link_directories(/usr/local/opt/openssl/lib)
 endif()
 
