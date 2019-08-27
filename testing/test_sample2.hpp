@@ -71,9 +71,9 @@ public:
   PYCONNECT_NETCOMM_DECLARE;
   PYCONNECT_WRAPPER_DECLARE;
   
-  PYCONNECT_METHOD( enableTimer );
-  PYCONNECT_METHOD( disableTimer );
-  PYCONNECT_METHOD( quit );
-  PYCONNECT_RO_ATTRIBUTE( timeout );
-  PYCONNECT_RO_ATTRIBUTE( timerTriggerNo );
+  PYCONNECT_METHOD( enableTimer, "enables the timer with specific timeout period" );
+  PYCONNECT_METHOD( disableTimer, "disable the timer" );
+  PYCONNECT_METHOD( quit, "stop program" );
+  PYCONNECT_RO_ATTRIBUTE( timeout, "timeout period for the timer" );
+  PYCONNECT_RO_ATTRIBUTE( timerTriggerNo, "timer trigger" );
 };

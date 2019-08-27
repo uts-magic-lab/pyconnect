@@ -62,14 +62,14 @@ public:
   PYCONNECT_NETCOMM_DECLARE;
   PYCONNECT_WRAPPER_DECLARE;
   
-  PYCONNECT_METHOD( helloWorld );
-  PYCONNECT_METHOD( testBoolean );
-  PYCONNECT_METHOD( printThisText );
-  PYCONNECT_METHOD( doAddition );
-  PYCONNECT_METHOD( doMultiply );
-  PYCONNECT_METHOD( doDivision );
-  PYCONNECT_METHOD( concateString );
+  PYCONNECT_METHOD( helloWorld, "hello world method" );
+  PYCONNECT_METHOD( testBoolean, "test boolean" );
+  PYCONNECT_METHOD( printThisText, "prints a input text" );
+  PYCONNECT_METHOD( doAddition, "add two integers" );
+  PYCONNECT_METHOD( doMultiply, "multiple two float numbers" );
+  PYCONNECT_METHOD( doDivision, "divide two float number" );
+  PYCONNECT_METHOD( concateString, "concatated string" );
 
-  PYCONNECT_RO_ATTRIBUTE( methodCalls );
-  PYCONNECT_RO_ATTRIBUTE( myString );
+  PYCONNECT_RO_ATTRIBUTE( methodCalls, "number of method calls so far" );
+  PYCONNECT_RO_ATTRIBUTE( myString, "saved concated string" );
 };

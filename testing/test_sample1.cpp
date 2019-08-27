@@ -37,16 +37,16 @@ TestSample1::TestSample1() :
 {
   EXPORT_PYCONNECT_MODULE( TestSample1, "A simple test program that uses PyConnect framework." );
 
-  EXPORT_PYCONNECT_RO_ATTRIBUTE( methodCalls, "number of method calls so far" );
-  EXPORT_PYCONNECT_RO_ATTRIBUTE( myString, "saved concated string" );
+  EXPORT_PYCONNECT_RO_ATTRIBUTE( methodCalls );
+  EXPORT_PYCONNECT_RO_ATTRIBUTE( myString );
 
-  EXPORT_PYCONNECT_METHOD( helloWorld, "hello world method" );
-  EXPORT_PYCONNECT_METHOD( testBoolean, "test boolean" );
-  EXPORT_PYCONNECT_METHOD( printThisText, "prints a input text" );
-  EXPORT_PYCONNECT_METHOD( doAddition, "add two integers" );
-  EXPORT_PYCONNECT_METHOD( doMultiply, "multiple two float numbers" );
-  EXPORT_PYCONNECT_METHOD( doDivision, "divide two float number" );
-  EXPORT_PYCONNECT_METHOD( concateString, "concatated string" );
+  EXPORT_PYCONNECT_METHOD( helloWorld );
+  EXPORT_PYCONNECT_METHOD( testBoolean );
+  EXPORT_PYCONNECT_METHOD( printThisText );
+  EXPORT_PYCONNECT_METHOD( doAddition );
+  EXPORT_PYCONNECT_METHOD( doMultiply );
+  EXPORT_PYCONNECT_METHOD( doDivision );
+  EXPORT_PYCONNECT_METHOD( concateString );
 
   PYCONNECT_NETCOMM_INIT;
   PYCONNECT_NETCOMM_ENABLE_NET;

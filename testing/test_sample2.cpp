@@ -62,12 +62,12 @@ TestSample2::TestSample2() :
   timerEnabled_( false )
 {
   EXPORT_PYCONNECT_MODULE( TestSample2, "A simple timer program that uses PyConnect framework." );
-  EXPORT_PYCONNECT_RO_ATTRIBUTE( timeout, "timeout period for the timer" );
-  EXPORT_PYCONNECT_RO_ATTRIBUTE( timerTriggerNo, "timer trigger" );
+  EXPORT_PYCONNECT_RO_ATTRIBUTE( timeout );
+  EXPORT_PYCONNECT_RO_ATTRIBUTE( timerTriggerNo );
 
-  EXPORT_PYCONNECT_METHOD( enableTimer, "enables the timer with specific timeout period" );
-  EXPORT_PYCONNECT_METHOD( disableTimer, "disable the timer" );
-  EXPORT_PYCONNECT_METHOD( quit, "stop program" );
+  EXPORT_PYCONNECT_METHOD( enableTimer );
+  EXPORT_PYCONNECT_METHOD( disableTimer );
+  EXPORT_PYCONNECT_METHOD( quit );
 
   FD_ZERO( &masterFDSet_ );
   PYCONNECT_NETCOMM_INIT;

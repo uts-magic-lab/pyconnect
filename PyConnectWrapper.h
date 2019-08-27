@@ -316,13 +316,10 @@ public:
     PyConnectData<DataType>::fini( retStr );
   }
 
-  template <class DataType> void setAttrData( int attrId, DataType & attrValue, 
+  template <class DataType, class T> void setAttrData( int attrId, T&& setFunc,
     unsigned char * & dataPtr, int & remainingBytes, PyConnectMsgStatus status, int serverId )
   {
-    attrValue = 
-      PyConnectData<DataType>::getData( dataPtr, remainingBytes, status );
-    if (!this->noResponse_)
-      this->sendAttrMetdResponse( status, attrId, remainingBytes, dataPtr, serverId );
+    setFunc( PyConnectData<DataType>::getData( dataPtr, remainingBytes, status ) );
   }
 
   template <class DataType> void updateAttribute( const char * attrName, const DataType & attrValue )
@@ -407,22 +404,26 @@ private:
 #define PYCONNECT_MODULE_FINI  \
   pyconnect::PyConnectWrapper::instance()->moduleShutdown()  \
 
-#define PYCONNECT_RO_ATTRIBUTE( NAME )    \
-  decltype(NAME) get##NAME##_value() const  \
+#define PYCONNECT_RO_ATTRIBUTE( NAME, DESC )    \
+  const char * get_attr_##NAME##_description() const \
+  { \
+    return #DESC; \
+  } \
+  decltype(NAME) get_##NAME##_value() const  \
   { \
     return this->NAME;  \
   } \
   static int s_get_raw_value_##NAME( unsigned char * & valueBuf )  \
   {                            \
     return pyconnect::PyConnectWrapper::instance()->packRawAttrData( \
-      static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->get##NAME##_value(), \
+      static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->get_##NAME##_value(), \
       valueBuf );                    \
   }                            \
   static void s_get_attr_##NAME( int attrId, int serverId )    \
   {                            \
     if (pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject()) {        \
       pyconnect::PyConnectWrapper::instance()->postAttrMetdData( attrId,        \
-        static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->get##NAME##_value(),  \
+        static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->get_##NAME##_value(),  \
         pyconnect::PyConnectWrapper::instance()->validateAttribute( attrId, #NAME ),  \
         serverId );            \
     }                    \
@@ -435,19 +436,24 @@ private:
   }                      \
   void dummy_##NAME()
 
-#define EXPORT_PYCONNECT_RO_ATTRIBUTE( NAME, DESC )    \
-  pyconnect::PyConnectWrapper::instance()->addNewAttribute( #NAME, DESC,  \
+#define EXPORT_PYCONNECT_RO_ATTRIBUTE( NAME )    \
+  pyconnect::PyConnectWrapper::instance()->addNewAttribute( #NAME, this->get_attr_##NAME##_description(),  \
     pyconnect::getVarType( NAME ), &PYCONNECT_MODULE_NAME::s_get_raw_value_##NAME, \
     &PYCONNECT_MODULE_NAME::s_get_attr_##NAME, NULL );
 
-#define PYCONNECT_RW_ATTRIBUTE( NAME )  \
+#define PYCONNECT_RW_ATTRIBUTE( NAME, DESC )  \
+  const char * get_attr_##NAME##_description() const \
+  { \
+    return #DESC; \
+  } \
   decltype(NAME) get_##NAME##_value() const  \
   { \
     return this->NAME; \
   } \
-  void set_##NAME##_value( decltype(NAME) value ) \
+  void set_##NAME##_value( const decltype(NAME)& value ) \
   { \
-    return this->NAME = value;  \
+    this->NAME = value;  \
+    PYCONNECT_ATTRIBUTE_UPDATE( NAME ); \
   } \
   static int s_get_raw_value_##NAME( unsigned char * & valueBuf )  \
   {                            \
@@ -472,9 +478,11 @@ private:
   };                      \
   static void s_set_attr_##NAME( int attrId, unsigned char * & dataStr, int & rBytes, int serverId )  \
   {                      \
+    using namespace std::placeholders; \
     if (pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject()) {        \
-      pyconnect::PyConnectWrapper::instance()->setAttrData( attrId,            \
-        static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->set_##NAME##_value( NAME ),  \
+      pyconnect::PyConnectWrapper::instance()->setAttrData<decltype(NAME)>( attrId,     \
+        std::bind( &PYCONNECT_MODULE_NAME::set_##NAME##_value, \
+          static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject()), _1 ),  \
         dataStr, rBytes,                      \
         pyconnect::PyConnectWrapper::instance()->validateAttribute( attrId, #NAME ),  \
         serverId );            \
@@ -488,8 +496,8 @@ private:
   }                      \
   void dummy_##NAME()
 
-#define EXPORT_PYCONNECT_RW_ATTRIBUTE( NAME, DESC )  \
-  pyconnect::PyConnectWrapper::instance()->addNewAttribute( #NAME, DESC, \
+#define EXPORT_PYCONNECT_RW_ATTRIBUTE( NAME )  \
+  pyconnect::PyConnectWrapper::instance()->addNewAttribute( #NAME, this->get_attr_##NAME##_description(), \
     pyconnect::getVarType( NAME ), &PYCONNECT_MODULE_NAME::s_get_raw_value_##NAME, \
     &PYCONNECT_MODULE_NAME::s_get_attr_##NAME, \
     &PYCONNECT_MODULE_NAME::s_set_attr_##NAME )
@@ -500,11 +508,7 @@ private:
 */
 #define PYCONNECT_ATTRIBUTE_UPDATE( NAME )    \
   pyconnect::PyConnectWrapper::instance()->updateAttribute( #NAME, \
-    static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->NAME );
-
-#define ARGTYPE( DATATYPE ) (pyconnect::PyConnectData<DATATYPE>::getData( dataStr, rBytes, status ))
-#define OPT_ARGTYPE( DATATYPE, DEFAULTVALUE ) \
-  (pyconnect::PyConnectData<DATATYPE>::getData( dataStr, rBytes, status, DEFAULTVALUE ))
+    static_cast<PYCONNECT_MODULE_NAME *>(pyconnect::PyConnectWrapper::instance()->pyConnectModule()->oobject())->get_##NAME##_value() );
 
 template<typename Ft, typename Func, typename Obj, std::size_t... index> 
 static
@@ -540,7 +544,11 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
                                                     pyconnect::NO_ERRORS, serverId );
 }
 
-#define PYCONNECT_METHOD( NAME )  \
+#define PYCONNECT_METHOD( NAME, DESC )  \
+  const char * get_fn_##NAME##_description() const \
+  { \
+    return #DESC; \
+  } \
   static void s_call_fn_##NAME( int metdId, unsigned char * & dataStr, int & rBytes, int serverId )        \
   {                      \
     int metdIndex = pyconnect::PyConnectWrapper::instance()->pyConnectModule()->attributes.size() + metdId; \
@@ -583,7 +591,7 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
       pyconnect::NO_PYCONNECT_OBJECT, metdIndex, 0, NULL, serverId );  \
   }
 
-#define EXPORT_PYCONNECT_METHOD( NAME, DESC )  \
+#define EXPORT_PYCONNECT_METHOD( NAME )  \
   { \
     using fntraits = pyconnect::function_traits<std::function<decltype(&PYCONNECT_MODULE_NAME::NAME)>>; \
     std::vector<int> argtypelist; \
@@ -593,7 +601,7 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
       pyconnect::PyConnectWrapper::instance()->s_arglist.push_back(  \
         new pyconnect::Argument( "", "", (pyconnect::PyConnectType::Type)argtypelist[asize-i-1] ) ); \
     } \
-    pyconnect::PyConnectWrapper::instance()->addNewMethod( #NAME, DESC,  \
+    pyconnect::PyConnectWrapper::instance()->addNewMethod( #NAME, this->get_fn_##NAME##_description(),  \
       pyconnect::pyconnect_type<fntraits::return_type>::value, &PYCONNECT_MODULE_NAME::s_call_fn_##NAME, \
       pyconnect::PyConnectWrapper::instance()->s_arglist );  \
     pyconnect::PyConnectWrapper::instance()->s_arglist.clear(); \
