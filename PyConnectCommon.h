@@ -342,16 +342,6 @@ struct function_traits<R(C&,Args...)>
   };
 };
 
-template<std::size_t N, typename std::enable_if<!N, int>::type = 0, typename R, typename C, typename... Args> static
-std::function<R(Args...)> custom_bind(R(C::* func)(Args...), C& instance) {
-    return [=](Args... args){ return (instance.*func)(args...); };
-}
-
-template<std::size_t N, typename std::enable_if<!N, int>::type = 0, typename R, typename C, typename... Args> static
-std::function<R(Args...)> custom_bind(R (C::* func)(Args...) const, C const& instance) {
-    return [=](Args... args){ return (instance.*func)(args...); };
-}
-
 template <size_t ArgIdx, typename R, typename... Args>
 auto get_arg_types( std::vector<int> & atlist ) 
     -> typename std::enable_if<ArgIdx == 1>::type

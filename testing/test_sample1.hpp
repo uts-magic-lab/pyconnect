@@ -63,12 +63,12 @@ public:
   PYCONNECT_WRAPPER_DECLARE;
   
   PYCONNECT_METHOD( helloWorld );
-  PYCONNECT_METHOD( testBoolean, ARGTYPE( bool ) );
-  PYCONNECT_METHOD( printThisText, ARGTYPE( std::string ) );
-  PYCONNECT_METHOD( doAddition, ARGTYPE( int ), ARGTYPE( int ) );
-  PYCONNECT_METHOD( doMultiply, ARGTYPE( float ), ARGTYPE( float ) );
-  PYCONNECT_METHOD( doDivision, ARGTYPE( float ), ARGTYPE( float ) );
-  PYCONNECT_METHOD( concateString, ARGTYPE( std::string ), ARGTYPE( std::string ) );
+  PYCONNECT_METHOD( testBoolean );
+  PYCONNECT_METHOD( printThisText );
+  PYCONNECT_METHOD( doAddition );
+  PYCONNECT_METHOD( doMultiply );
+  PYCONNECT_METHOD( doDivision );
+  PYCONNECT_METHOD( concateString );
 
   PYCONNECT_RO_ATTRIBUTE( methodCalls );
   PYCONNECT_RO_ATTRIBUTE( myString );
