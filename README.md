@@ -29,8 +29,8 @@ PyConnect consists of three components:
 5. Autodiscovery. PyConnect employs a very simple auto-discovery scheme. Currently, with a PyConnect enabled local network setup, the Python extension module and PyConnect wrapped programs will establish their communication automatically. See section PyConnect enabled network setup.
 
 ## Supported compilers and environments
-Main compiler used in the development is GCC 4.2+ (Clang also supported).
-I have also used Sun's C/C++ compiler and Visual Studio 2010 C/C++ compiler (still with some issues).
+Main compiler used in the development is GCC 4.9+ (Clang also supported).
+I have also used Sun's C/C++ compiler and Visual Studio 2015 C/C++ compiler (still with some issues).
 I have PyConnect wrapped programs running under Linux, OS X (powerpc and intel), Solaris and Windows. However, I can't say PyConnect has been extensively tested under these environments.
 
 ### Limitations of PyConnect
@@ -62,9 +62,9 @@ Check pyconnect_intro.pdf file under doc directory.
 
 #### Windows
 
-1. You need to first install latest Python (currently 2.7.3) for Windows package. You then need to have Visual Studio 2010 installed. If you have VS2010 express version, you would also need to have Windows SDK installed.
+1. You need to first install latest Python (currently 2.7.15+) for Windows package. You then need to have Visual Studio 2015 installed. If you have VS2015 express version, you would also need to have Windows SDK installed.
 
-2. Open a Visual Studio 2010 command prompt and do `set MSSdk=1` and `set DISTUTILS_USE_SDK=1`
+2. Open a Visual Studio 2015 command prompt and do `set MSSdk=1` and `set DISTUTILS_USE_SDK=1`
 
 3. now you can do `python pyconnect_ext_setup.py build`
 
