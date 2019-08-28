@@ -88,6 +88,7 @@ public:
   bool isReadOnly() const { return readonly_; }
   PyObject * getValue() { Py_INCREF( value_ ); return value_; }
   void setValue( PyObject * newValue );
+  void setDescription( const std::string & desc ) { desc_ = desc; }
 
 private:
   std::string desc_;
@@ -106,6 +107,7 @@ public:
   
   int id() const { return id_; }
   std::string & name() { return name_; }
+  void setDescription( const std::string & desc ) { desc_ = desc; myMetdDef_.ml_doc = desc_.c_str(); }
   PyConnectType::Type retType() const { return type_; }
   PyObject * methodObj() { Py_INCREF( metdObj_ ); return metdObj_; }
 
@@ -153,7 +155,7 @@ public:
 
   void onSetAttrMetdResp( int index, int err, unsigned char * & data, int & remainingLength );
   void onGetAttrResp( int index, int err, unsigned char * & data, int & remainingLength );
-  void setAttrMetdDesc( int index, int err, unsigned char * & data, int & remainingLength );
+  void onSetAttrMetdDesc( unsigned char * & data, int & remainingLength );
   void addNewAttribute( std::string & name, PyConnectType::Type type,
     bool readOnly, PyObject * initValue );
   void addNewMethod( std::string & metdName, PyConnectType::Type type,

@@ -237,6 +237,74 @@ void PyConnectWrapper::declareModuleAttrMetd( int serverId )
   delete [] dataBuffer;
 }
 
+void PyConnectWrapper::declareModuleAttrMetdDesc( int serverId )
+{
+  unsigned char * dataBuffer = NULL;
+
+  if (!pPyConnectModule_)
+    return;
+
+  // calculate required buffer size
+  int attrlens = 0;
+  int descLen = 0;
+  int metdlens = 0;
+
+  for (Attributes::iterator aiter = pPyConnectModule_->attributes.begin();
+    aiter != pPyConnectModule_->attributes.end(); aiter++)
+  {
+    descLen = aiter->second->getDescription().length();
+    attrlens += descLen + packedIntLen( descLen );
+  }
+
+  int nofattrs = pPyConnectModule_->attributes.size();
+  int totalAttrSize = attrlens;
+
+  for (Methods::iterator miter = pPyConnectModule_->methods.begin();
+    miter != pPyConnectModule_->methods.end(); miter++)
+  {
+    descLen = miter->second->getDescription().length();
+    metdlens += descLen + packedIntLen( descLen );
+  }
+  int nofmethods = pPyConnectModule_->methods.size();
+  int totalMetdSize = metdlens;
+
+  int asl = packedIntLen( nofattrs );
+  int msl = packedIntLen( nofmethods );
+
+  int totalMsgSize = 3 + asl + msl + totalAttrSize + totalMetdSize;
+
+  dataBuffer = new unsigned char[totalMsgSize];
+
+  unsigned char * bufPtr = dataBuffer;
+
+  *bufPtr = (unsigned char) (ATTR_METD_DESC << 4 | (serverId & 0xf)); bufPtr++;
+  *bufPtr = (unsigned char) serverMap_[serverId].assignedModuleID; bufPtr++;
+
+  // pack available attributes information
+  packIntToStr( nofattrs, bufPtr );
+  for (Attributes::iterator aiter = pPyConnectModule_->attributes.begin();
+    aiter != pPyConnectModule_->attributes.end(); aiter++)
+  {
+    Attribute * attr = aiter->second;
+    packString( (unsigned char*)attr->getDescription().data(),
+                  attr->getDescription().length(), bufPtr, true );
+  }
+  // pack available method information
+  packIntToStr( nofmethods, bufPtr );
+  for (Methods::iterator miter = pPyConnectModule_->methods.begin();
+    miter != pPyConnectModule_->methods.end(); miter++)
+  {
+    Method * metd = miter->second;
+    packString( (unsigned char*)metd->getDescription().data(),
+                  metd->getDescription().length(), bufPtr, true );
+  }
+
+  *bufPtr = PYCONNECT_MSG_END;
+
+  this->dispatchMessage( dataBuffer, totalMsgSize );
+  delete [] dataBuffer;
+}
+
 MesgProcessResult PyConnectWrapper::processInput( unsigned char * recData, int bytesReceived, struct sockaddr_in & cAddr, bool skipdecrypt )
 {
   unsigned char * message = NULL;
@@ -314,6 +382,7 @@ MesgProcessResult PyConnectWrapper::processInput( unsigned char * recData, int b
       pPyConnectModule_->oobject()->onClientConnected( serverId );
 #endif
       declareModuleAttrMetd( serverId );
+      declareModuleAttrMetdDesc( serverId );
     }
     return MESG_PROCESSED_OK;
   }

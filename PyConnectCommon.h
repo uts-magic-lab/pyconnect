@@ -149,7 +149,7 @@ typedef enum {
   ATTR_METD_RESP        = 0x7,
   ATTR_VALUE_UPDATE     = 0x8,
   GET_ATTR_METD_DESC    = 0x9,
-  ATTR_METD_DESC_RESP   = 0xa,
+  ATTR_METD_DESC        = 0xa,
   MODULE_SHUTDOWN       = 0xb,
   SERVER_SHUTDOWN       = 0xc,
   PEER_SERVER_DISCOVERY = 0xd, // TODO: to be implemented.

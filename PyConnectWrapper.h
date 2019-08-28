@@ -86,7 +86,8 @@ public:
   
   int getRawValue( unsigned char * & buf ) { return (this->getRawValueFn)( buf ); }
   
-  bool isWritable() { return (attrSetFn != NULL); }
+  bool isWritable() const { return (attrSetFn != NULL); }
+  const std::string & getDescription() { return this->desc; }
   
 private:
   void (*attrGetFn)( int, int );
@@ -110,7 +111,8 @@ public:
   void methodCall( void (*accessFn)( int, unsigned char * &, int &, int ) )
     { this->accessFn_ = accessFn; } 
   Arguments & args() { return this->args_; }
-  PyConnectType::Type retType() { return this->type; }
+  PyConnectType::Type retType() const { return this->type; }
+  const std::string & getDescription() { return this->desc; }
 
 private:
   void (*accessFn_)( int, unsigned char * &, int &, int );
@@ -295,6 +297,7 @@ public:
 
   void declarePyConnectModule( int serverId = 0, bool toBroadcast = true );
   void declareModuleAttrMetd( int serverId = 0 );
+  void declareModuleAttrMetdDesc( int serverId = 0 );
   
   void sendAttrMetdResponse( int err, int index, int length, 
     unsigned char * data, int serverId, PyConnectMsg msgType = ATTR_METD_RESP );
@@ -418,7 +421,7 @@ private:
 #define PYCONNECT_RO_ATTRIBUTE( NAME, DESC )    \
   const char * get_attr_##NAME##_description() const \
   { \
-    return #DESC; \
+    return DESC; \
   } \
   decltype(NAME) get_##NAME##_value() const  \
   { \
@@ -455,7 +458,7 @@ private:
 #define PYCONNECT_RW_ATTRIBUTE( NAME, DESC )  \
   const char * get_attr_##NAME##_description() const \
   { \
-    return #DESC; \
+    return DESC; \
   } \
   decltype(NAME) get_##NAME##_value() const  \
   { \
@@ -558,7 +561,7 @@ template <typename retval, typename T, typename std::enable_if<!std::is_void<ret
 #define PYCONNECT_METHOD( NAME, DESC )  \
   const char * get_fn_##NAME##_description() const \
   { \
-    return #DESC; \
+    return DESC; \
   } \
   static void s_call_fn_##NAME( int metdId, unsigned char * & dataStr, int & rBytes, int serverId )        \
   {                      \

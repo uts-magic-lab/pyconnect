@@ -546,23 +546,19 @@ void PyConnectObject::onGetAttrResp( int index, int err, unsigned char * & data,
   Py_DECREF( arg );
 }
 
-void PyConnectObject::setAttrMetdDesc( int index, int err, unsigned char * & data, int & remainingLength )
+void PyConnectObject::onSetAttrMetdDesc( unsigned char * & data, int & remainingLength )
 {
-  // pending further investigation
-  /*
-  PyObject * arg = NULL;
-  
-  if (index < pPyAttrs_.size()) {
-    pyAttributes::iterator aiter = pPyAttrs_.begin() + index;
+    /* let's hope our message is not corrupted hahaha */
+  int nofattrs = unpackStrToInt( data, remainingLength );
+  for (int i = 0;i < nofattrs;i++) {
+    pPyAttrs_[i]->setDescription( unpackString( data, remainingLength, true ) );
   }
-  else {
-    index -= pPyAttrs_.size();
-    if (index < pPyMetds_.size()) {
-      pyMethods::iterator miter = pPyMetds_.begin() + index;
-    }
+
+  // unpacking methods
+  int nofmetds = unpackStrToInt( data, remainingLength );
+  for (int i = 0;i < nofmetds;i++) {
+    pPyMetds_[i]->setDescription( unpackString( data, remainingLength, true ) );
   }
-  */
-  return;
 }
 
 /*
@@ -920,7 +916,7 @@ MesgProcessResult PyConnectStub::processInput( unsigned char * recData, int byte
   }
   else if (msgType == PEER_SERVER_MSG) {
     int peerServerID = *(message - 1) & 0xf;
-    std::string peerMsg = unpackString( message, dummyLen );
+    std::string peerMsg = unpackString( message, dummyLen, true );
     // threadsafe lock
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
@@ -1019,15 +1015,9 @@ MesgProcessResult PyConnectStub::processInput( unsigned char * recData, int byte
       pPyModule->onGetAttrResp( amind, err, message, datalen );
     }
       break;
-    case ATTR_METD_DESC_RESP:
+    case ATTR_METD_DESC:
     {
-      //DEBUG_MSG( "PyConnectStub:processInput: ATTR_METD_DESC_RESP\n" );
-      int err = (int)(*message++ & 0xf);
-      int datalen = 0;
-      int dummyLen = 0;
-      unpackLENumber( datalen, message, dummyLen );  // assume both server and client conform to same interger definition
-      int amind = unpackStrToInt( message, datalen );
-      pPyModule->setAttrMetdDesc( amind, err, message, datalen );
+      pPyModule->onSetAttrMetdDesc( message, dummyLen );
     }
       break;
     default:
