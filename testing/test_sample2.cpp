@@ -61,7 +61,7 @@ TestSample2::TestSample2() :
   maxFD_( 0 ),
   timerEnabled_( false )
 {
-  EXPORT_PYCONNECT_MODULE( TestSample2, "A simple timer program that uses PyConnect framework." );
+  EXPORT_PYCONNECT_MODULE;
   EXPORT_PYCONNECT_RO_ATTRIBUTE( timeout );
   EXPORT_PYCONNECT_RO_ATTRIBUTE( timerTriggerNo );
 

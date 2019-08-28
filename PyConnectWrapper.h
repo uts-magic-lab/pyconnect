@@ -395,14 +395,25 @@ private:
   MessageProcessor * getMP() { return pyconnect::PyConnectWrapper::instance(); }  \
   void dummy0()
 
-#define EXPORT_PYCONNECT_MODULE( NAME, DESC )              \
-  pyconnect::PyConnectWrapper::init( new pyconnect::PyConnectModule( #NAME, DESC, this ) )
+#define EXPORT_PYCONNECT_MODULE              \
+  { \
+    int status = 0; \
+    char * demangled = abi::__cxa_demangle( typeid(*this).name(), 0, 0, &status ); \
+    pyconnect::PyConnectWrapper::init( new pyconnect::PyConnectModule( demangled, \
+              this->get_module_##PYCONNECT_MODULE_NAME##_description(), this ) ); \
+  }
 
 #define PYCONNECT_MODULE_INIT  \
   pyconnect::PyConnectWrapper::instance()->declarePyConnectModule()
 
 #define PYCONNECT_MODULE_FINI  \
   pyconnect::PyConnectWrapper::instance()->moduleShutdown()  \
+
+#define PYCONNECT_MODULE_DESCRIPTION( DESC ) \
+  const char * get_module_##PYCONNECT_MODULE_NAME##_description() const \
+  { \
+    return DESC; \
+  }
 
 #define PYCONNECT_RO_ATTRIBUTE( NAME, DESC )    \
   const char * get_attr_##NAME##_description() const \

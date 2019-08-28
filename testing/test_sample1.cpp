@@ -35,7 +35,7 @@ TestSample1::TestSample1() :
   methodCalls( 0 ),
   myString( "my test" )
 {
-  EXPORT_PYCONNECT_MODULE( TestSample1, "A simple test program that uses PyConnect framework." );
+  EXPORT_PYCONNECT_MODULE;
 
   EXPORT_PYCONNECT_RO_ATTRIBUTE( methodCalls );
   EXPORT_PYCONNECT_RO_ATTRIBUTE( myString );

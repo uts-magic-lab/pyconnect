@@ -70,7 +70,9 @@ private:
 public:
   PYCONNECT_NETCOMM_DECLARE;
   PYCONNECT_WRAPPER_DECLARE;
-  
+
+  PYCONNECT_MODULE_DESCRIPTION( "A simple timer program that uses PyConnect framework." );
+
   PYCONNECT_METHOD( enableTimer, "enables the timer with specific timeout period" );
   PYCONNECT_METHOD( disableTimer, "disable the timer" );
   PYCONNECT_METHOD( quit, "stop program" );

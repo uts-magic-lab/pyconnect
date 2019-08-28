@@ -61,7 +61,9 @@ private:
 public:
   PYCONNECT_NETCOMM_DECLARE;
   PYCONNECT_WRAPPER_DECLARE;
-  
+
+  PYCONNECT_MODULE_DESCRIPTION( "A simple test program that uses PyConnect framework." );
+
   PYCONNECT_METHOD( helloWorld, "hello world method" );
   PYCONNECT_METHOD( testBoolean, "test boolean" );
   PYCONNECT_METHOD( printThisText, "prints a input text" );
