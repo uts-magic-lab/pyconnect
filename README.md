@@ -1,64 +1,55 @@
-# pyconnect
+# PyConnect
 A lightweight framework to integrate C++ programs with Python
 
-### IMPORTANT NOTE:
-This software is still considered as experimental. Please, do not use it in an environment that requires high level of reliability. I hope enough people find PyConnect useful and help me to improve it.
+## Introduction
+**PyConnect** is a **very simple** and lightweight development framework to integrate existing C/C++ programs with Python. By re-declaring the existing functions/methods and variables using PYCONNCECT macros, you can expose your program's functionality to a local or remotely running Python interpreter as a normal extension module.
 
-## Short Description
-PyConnect is a simple development framework to integrate existing C/C++ programs with Python. By re-declaring the existing functions/methods and variables in your program with macros provided by PyConnect, you can expose your program's functionality to a local/remote Python interpreter (through PyConnect extension module), i.e. you now can write Python scripts to control the execution of your program.
+PyConnect is composed of two major components:
 
-PyConnect consists of three components:
+1. A wrapper library to be integrated (and compile) with your existing C++ code. It provides PYCONNECT macros to expose your program's variables and methods.
 
-1. A wrapper library that contains macros you need to expose your program's functionality. You need to compile PyConnect wrapper library with your program.
-
-2. A Python extension module that talks to your PyConnect wrapped programs.
-
-3. A network/InterProcess Communication (IPC) layer for data communication between the extension module and your PyConnect wrapped program. At this moment, only a TCP/IP based IPC layer is provide. You can write your own IPC layer with, for example, Windows's messaging system.
-
+1. A PyConnect extension module that act as a conduit between Python intepretor and the PyConnect wrapped program. You need to ```import PyConnect``` in Python intepretor.
 
 ## Key features of PyConnect
 
-1. Minimum modifications is required to turn your program into a Python scriptable program. For your average programs, you need to add about few dozens lines of code. That's it.
+1. Minimum modifications is required to transform a generic C++ program into a Python scriptable program. Normally, you only need to add about few lines of code into your existing C++ source code. See sample code in ```testing``` subdirectory.
 
-2. No changes to your program's existing behaviour. Your program will still run as it runs before. Your existing ways of controlling the program will remain intact.
+1. No impact on the program's existing behaviour. Your program should still operate as usual. Your existing ways of controlling the program should remain intact.
 
-3. An uniform Python interface. If you have wrapped multiple programs with PyConnect. All your programs will be listed under PyConnect module in the Python interpreter. You can use same programming scheme to write scripts for your programs.
+1. An uniform Pythonic interface. If you have wrapped multiple programs with PyConnect. All your programs will be listed under PyConnect module in the Python interpreter. You can use same programming scheme to write scripts for your programs.
 
-4. Fault tolerance. Since your program still runs as an individual process. Any program failure/crash can be gracefully handled. A Python callback function is invoked when your program gets an exception and/or goes offline.
+1. Dynamic binding. Your program still runs as an standalone process. Any program failure/crash will be handled gracefully without crashing the Python engine. A Python callback function is invoked when your program gets an exception and/or goes offline.
 
-5. Autodiscovery. PyConnect employs a very simple auto-discovery scheme. Currently, with a PyConnect enabled local network setup, the Python extension module and PyConnect wrapped programs will establish their communication automatically. See section PyConnect enabled network setup.
+1. Autodiscovery. PyConnect employs a very simple auto-discovery scheme. Currently, with a PyConnect enabled local network setup, the Python extension module and PyConnect wrapped programs will establish their communication automagically. See section PyConnect enabled network setup.
 
 ## Supported compilers and environments
-Main compiler used in the development is GCC 4.9+ (Clang also supported).
-I have also used Sun's C/C++ compiler and Visual Studio 2015 C/C++ compiler (still with some issues).
-I have PyConnect wrapped programs running under Linux, OS X (powerpc and intel), Solaris and Windows. However, I can't say PyConnect has been extensively tested under these environments.
+All major C++ compilers that support C++14 standard. That is,
+
+* GCC 4.9 or newer
+* Clang 3.4 or newer
+* Visual Studio 2015 C/C++ compiler.
+
+PyConnect works under Linux, OS X (powerpc and intel), Solaris and Windows.
 
 ### Limitations of PyConnect
 
-1. Only basic C/C++ data types are supported at this moment.
+1. Only basic C/C++ data types are supported. That is, ```void```, ```bool```, ```int```, ```float```, ```double``` and ```std::string```. Yes, this is very primitive compared with what [pybind11](https://github.com/pybind/pybind11) supports. In fact, I will recommend to use pybind11 by default **unless** you are looking for dynamic binding and remote control your program over network.
 
-2. Only has one TCP/IP based IPC layer implemented.
-
-3. Not suitable for any programs that have soft/hard realtime requirement.
-
-### A brief history of PyConnect
-PyConnect was born out of a short project (only a design proposal was required for the project completion) for my master study at the University of Technology, Sydney. The initial goal was to embed a Python engine into Sony AIBO robot for the UTS robot soccer team: UTS Unleashed!. The plan was to take many advantages of Python for further robotic programming (quite few universities' robot soccer teams use Python, in fact). However, no one wants to reprogram many existing tried-and-proven C++ components (besides, there are performance issues for computational intensive tasks). Hence the idea was to develop a wrapper for existing code. It soon becomes clear to me, this idea can go beyond the confines of AIBO. 
-
-NOTE: The embedded Python engine (and related code) for AIBO is not included in the released package.
+1. Not suitable for any programs that has soft/hard realtime requirement.
 
 ## Documentation
-Check pyconnect_intro.pdf file under doc directory.
+Check ```pyconnect_intro.pdf``` file under ```doc``` directory.
 
 ### Compile PyConnect extension module
 #### Linux (debian)
 
 1. You need to install Python and Python-dev for C++ package first (i.e. `aptitude install python python-dev`)
 
-2. Do `python pyconnect_ext_setup.py build`
+2. ```python pyconnect_ext_setup.py build```
 
 #### OS X
 
-1. Do `python pyconnect_ext_setup.py build`
+1. ```python pyconnect_ext_setup.py build```
 
 #### Windows
 
@@ -73,10 +64,10 @@ Check pyconnect_intro.pdf file under doc directory.
 You can do this in two ways:
 
 1. First compile the wrapper library then link it with you program
-To compile the wrapper library, just do `mkdir build;cmake ..;make`. You need to link in `libpyconnect_wrapper.a` library file under `lib` directory and make sure all PyConnect wrapper header files are available to your program (see below).
+To compile the wrapper library, just do ```mkdir build;cmake ..;make```. You need to link in ```libpyconnect_wrapper.a``` library file under ```lib``` directory and make sure all PyConnect wrapper header files are available to your program (see below).
 
-2. Put the PyConnect wrapper library related source files with your source code together and modify your program `Makefile` or `CMakeLists.txt` to include PyConnect code with your compile. You need following PyConnect source files:
-
+2. Put the PyConnect wrapper library related source files with your source code together and modify your program ```Makefile``` or ```CMakeLists.txt``` to include PyConnect code with your compile. You need following PyConnect source files:
+```
         PyConnectCommon.h
         PyConnectCommon.cpp
         PyConnectObjcomm.h
@@ -85,7 +76,7 @@ To compile the wrapper library, just do `mkdir build;cmake ..;make`. You need to
         PyConnectWrapper.cpp
         PyConnectNetComm.h (network communication layer)
         PyConnectNetComm.cpp (network communication layer)
-
+```
 
 ### PyConnect enabled network setup
 
