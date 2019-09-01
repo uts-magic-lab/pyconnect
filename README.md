@@ -10,6 +10,10 @@ PyConnect is composed of two major components:
 
 1. A PyConnect extension module that act as a conduit between Python intepretor and the PyConnect wrapped program. You need to ```import PyConnect``` in Python intepretor.
 
+### PyConnect Architecture
+
+<img src="https://user-images.githubusercontent.com/6646691/64075987-88303480-cd02-11e9-9eb9-ffae66a6d4f4.png" width=400>
+
 ## Key features of PyConnect
 
 1. Minimum modifications is required to transform a generic C++ program into a Python scriptable program. Normally, you only need to add about few lines of code into your existing C++ source code. See sample code in ```testing``` subdirectory.
