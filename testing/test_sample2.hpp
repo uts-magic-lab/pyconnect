@@ -40,6 +40,8 @@ using namespace pyconnect;
 
 #define PYCONNECT_MODULE_NAME TestSample2
 
+namespace testing {
+
 class TestSample2 : public OObject, FDSetOwner
 {
 public:
@@ -76,6 +78,8 @@ public:
   PYCONNECT_METHOD( enableTimer, "enables the timer with specific timeout period" );
   PYCONNECT_METHOD( disableTimer, "disable the timer" );
   PYCONNECT_METHOD( quit, "stop program" );
-  PYCONNECT_RO_ATTRIBUTE( timeout, "timeout period for the timer" );
+  PYCONNECT_RW_ATTRIBUTE( timeout, "timeout period for the timer" );
   PYCONNECT_RO_ATTRIBUTE( timerTriggerNo, "timer trigger" );
 };
+
+} // namespace testing

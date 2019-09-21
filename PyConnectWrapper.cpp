@@ -67,17 +67,11 @@ Method::~Method()
   args_.clear();
 }
 
-PyConnectModule::PyConnectModule( const char * name, const char * desc, OObject * oobject )
-{
-  this->name = std::string( name );
-  this->desc = std::string( desc );
-  this->oobject_ = oobject;
-}
-
-PyConnectModule::PyConnectModule( const std::string & name, const std::string & desc )
+PyConnectModule::PyConnectModule( const std::string & name, const std::string & desc, OObject * oobject )
 {
   this->name = name;
   this->desc = desc;
+  this->oobject_ = oobject;
 }
 
 PyConnectModule::~PyConnectModule()

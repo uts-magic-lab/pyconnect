@@ -26,6 +26,7 @@
 #endif
 
 #include <string>
+#include <string.h>
 #include <vector>
 #include <iterator>
 #include <map>
@@ -128,8 +129,7 @@ public:
   Attributes  attributes;
   Methods    methods;
   
-  PyConnectModule( const char * name, const char * desc, OObject * oobject );
-  PyConnectModule( const std::string & name, const std::string & desc );
+  PyConnectModule( const std::string & name, const std::string & desc, OObject * oobject = NULL );
   ~PyConnectModule();
 
   OObject * oobject() { return this->oobject_; }
@@ -401,8 +401,9 @@ private:
 #define EXPORT_PYCONNECT_MODULE              \
   { \
     int status = 0; \
-    char * demangled = abi::__cxa_demangle( typeid(*this).name(), 0, 0, &status ); \
-    pyconnect::PyConnectWrapper::init( new pyconnect::PyConnectModule( demangled, \
+    std::string mname = abi::__cxa_demangle( typeid(*this).name(), 0, 0, &status ); \
+    std::size_t found = mname.find_last_of( ":" ); \
+    pyconnect::PyConnectWrapper::init( new pyconnect::PyConnectModule( mname.substr( found+1 ), \
               this->get_module_##PYCONNECT_MODULE_NAME##_description(), this ) ); \
   }
 

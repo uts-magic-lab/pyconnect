@@ -47,12 +47,15 @@ PYCONNECT_LOGGING_DECLARE( "testing.log" );
 int main( int argc, char ** argv )
 {
   PYCONNECT_LOGGING_INIT;
+  using testing::TestSample2;
   TestSample2 tp;
 
   tp.processContinously();
   INFO_MSG( "quiting the timer program..." );
   PYCONNECT_LOGGING_FINI;
 }
+
+namespace testing {
 
 TestSample2::TestSample2() :
   timeout( 500 ),
@@ -62,7 +65,7 @@ TestSample2::TestSample2() :
   timerEnabled_( false )
 {
   EXPORT_PYCONNECT_MODULE;
-  EXPORT_PYCONNECT_RO_ATTRIBUTE( timeout );
+  EXPORT_PYCONNECT_RW_ATTRIBUTE( timeout );
   EXPORT_PYCONNECT_RO_ATTRIBUTE( timerTriggerNo );
 
   EXPORT_PYCONNECT_METHOD( enableTimer );
@@ -188,3 +191,5 @@ void TestSample2::clearFD( const SOCKET_T & fd )
   maxFD_ = max( fd, maxFD_ );
 #endif
 }
+
+} // namespace testing
