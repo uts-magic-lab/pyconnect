@@ -29,36 +29,36 @@ pTS2 = None
 def onTimer( tick ):
 #  global pTS1, pTS2
 
-  if (tick % 10 == 0):
-    print 'tick reached', tick
-    pTS1.printThisText( 'tick reached %d' % tick )
+  if tick % 10 == 0:
+    print("tick reached {}".format(tick))
+    pTS1.printThisText("tick reached {}".format(tick))
 
-  if (tick >= 30):
-    print 'disable timer at 30 on TestSample2'
-    pTS1.printThisText( 'disable timer at 30 on TestSample2' )
+  if tick >= 30:
+    print('disable timer at 30 on TestSample2')
+    pTS1.printThisText('disable timer at 30 on TestSample2')
     pTS2.disableTimer()
 
 def onNewObject( obj ):
   global pTS1, pTS2
-  print 'got new object', obj.__name__
+  print('got new object {}'.format(obj.__name__))
   if obj.__name__ == 'TestSample1':
     pTS1 = obj
-    if (pTS2 != None):
+    if pTS2 is not None:
       pTS2.enableTimer( 1000 )
-      print 'enable timer on TestSample2'
-      pTS1.printThisText( 'enable timer on TestSample2' )
+      print('enable timer on TestSample2')
+      pTS1.printThisText('enable timer on TestSample2')
       
-  elif obj.__name__ == 'TestSample2':
+  if obj.__name__ == 'TestSample2':
     pTS2 = obj
     pTS2.ontimerTriggerNoUpdate = onTimer
-    if (pTS1 != None):
-      print 'enable timer on TestSample2'
+    if pTS1 is not None:
+      print('enable timer on TestSample2')
       pTS2.enableTimer( 1000 )
-      pTS1.printThisText( 'enable timer on TestSample2' )
+      pTS1.printThisText('enable timer on TestSample2')
 
 def onDeadObject( name, id ):
   global pTS1, pTS2
-  print 'dead object', name
+  print('dead object {}'.format(name))
   if (pTS1 and pTS1.id == id):
     if (pTS2):
       pTS2.disableTimer()
@@ -78,9 +78,8 @@ def run():
   if (pTS1 and pTS2):
     pTS2.enableTimer( 1000 )
   else:
-    print 'invoke PyConnect discovery'
+    print('invoke PyConnect discovery')
     PyConnect.discover()
-
 
 PyConnect.onModuleCreated = onNewObject
 PyConnect.onModuleDestroyed = onDeadObject

@@ -41,6 +41,13 @@
 
 #define ENCRYPTION_KEY_LENGTH  32
 #define PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE       10240
+
+#if PY_MAJOR_VERSION >= 3
+  #define PyInt_FromLong PyLong_FromLong
+  #define PyInt_AsLong PyLong_AsLong
+  #define PyInt_Check PyLong_Check
+#endif
+
 /* Use the following python code to generate random 32 char key and encode into base64
  *
  * import base64
@@ -490,8 +497,13 @@ int PyConnectType::validateTypeAndSize( PyObject * obj, Type type )
         return sizeof( double );
       break;
     case STRING:
+#if PY_MAJOR_VERSION >= 3
+      if (PyUnicode_Check( obj )) {
+        int size = (int)strlen(PyUnicode_AsUTF8( obj ));
+#else
       if (PyString_Check( obj )) {
         int size = (int)PyString_Size( obj );
+#endif
         return (size + packedIntLen( size ));
       }
       break;
@@ -518,7 +530,11 @@ PyObject * PyConnectType::defaultValue( Type type )
       return PyFloat_FromDouble( 0.0 );
       break;
     case STRING:
+#if PY_MAJOR_VERSION >= 3
+      return PyUnicode_FromString( "" );
+#else
       return PyString_FromString( "" );
+#endif
       break;
     case BOOL:
       Py_RETURN_FALSE;
@@ -551,7 +567,13 @@ void PyConnectType::packToStr( PyObject * arg, Type type, unsigned char * & data
       break;
     case STRING:
     {
+#if PY_MAJOR_VERSION >= 3
+      PyObject * unicodeobj = PyUnicode_FromObject( arg );
+      char * ret = PyUnicode_AsUTF8( unicodeobj );
+      Py_DECREF( unicodeobj );
+#else
       char * ret = PyString_AsString( arg );
+#endif
       int len = (int)strlen( ret );
       packString( (unsigned char*)ret, len, dataPtr, true );
     }
@@ -592,7 +614,11 @@ PyObject * PyConnectType::unpackStr( Type type, unsigned char * & dataPtr, int &
     case STRING:
     {
       std::string ret = unpackString( dataPtr, remainingLength, true );
+#if PY_MAJOR_VERSION >= 3
+      return PyUnicode_FromString( ret.c_str() );
+#else
       return PyString_FromString( ret.c_str() );
+#endif
     }
       break;
     case BOOL:

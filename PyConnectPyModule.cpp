@@ -40,11 +40,6 @@ using namespace pyconnect;
 
 PYCONNECT_LOGGING_DECLARE( "pyconnect.log" );
 
-/* Initialization function for the module (*must* be called initxx) */
-#ifndef PyMODINIT_FUNC  /* declarations for DLL import/export */
-#define PyMODINIT_FUNC void
-#endif
-
 #ifdef WIN32
 void ioprocess_thread( void * arg )
 #else
@@ -64,7 +59,12 @@ static void finiPyConnect()
   PyConnectStub::instance()->fini();
 }
 
-PyMODINIT_FUNC initPyConnect( void )
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+PyInit_PyConnect( void )
+#else
+initPyConnect( void )
+#endif
 {
 #ifdef WIN32
   InitializeCriticalSection( &g_criticalSection );
@@ -89,5 +89,10 @@ PyMODINIT_FUNC initPyConnect( void )
     abort();
   }
 #endif
+
+#if PY_MAJOR_VERSION >= 3
+  return pMod;
+#else
   atexit( finiPyConnect );
+#endif
 }

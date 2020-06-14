@@ -25,25 +25,31 @@
 #include <arpa/inet.h>
 #endif
 
+#include <cstring>
 #include "PyConnectStub.h"
 
 namespace pyconnect {
+
+#if PY_MAJOR_VERSION >= 3
+  #define PyInt_FromLong PyLong_FromLong
+  #define PyInt_AsLong PyLong_AsLong
+  #define PyInt_Check PyLong_Check
+#endif
+
 // static variables
 PyDoc_STRVAR( PyConnectObject_doc, "PyConnect Object. Not documented." );
 PyDoc_STRVAR( PyConnect_doc, \
               "PyConnect module is a module that act as an central interface to all available Pythonised OPEN-R objects." );
-
 static PyTypeObject PyConnectObjectType = {
-  PyObject_HEAD_INIT(&PyType_Type)
-  0,            /*ob_size*/
-  "PyConnect.PyConnectObject",  /*tp_name*/
-  sizeof(PyConnectObject),  /*tp_basicsize*/
-  0,            /*tp_itemsize*/
-  (destructor)PyConnectObject::dealloc,  /*tp_dealloc*/
+  PyVarObject_HEAD_INIT(&PyType_Type, 0)
+  "PyConnect.PyConnectObject",  /* tp_name */
+  sizeof(PyConnectObject),  /* tp_basicsize */
+  0,            /* tp_itemsize */
+  (destructor)PyConnectObject::dealloc,  /* tp_dealloc */
   0,            /*tp_print*/
   0,            /*tp_getattr*/
   0,            /*tp_setattr*/
-  0,            /*tp_compare*/
+  0,            /*tp_reserved*/
   0,            /*tp_repr*/
   0,            /*tp_as_number*/
   0,            /*tp_as_sequence*/
@@ -76,8 +82,7 @@ static PyTypeObject PyConnectObjectType = {
 };
 
 static PyTypeObject PyConnectMethodType = {
-  PyObject_HEAD_INIT(NULL)
-  0,                         /*ob_size*/
+  PyVarObject_HEAD_INIT(NULL, 0)
   "PyConnect.PyConnectMethod",     /*tp_name*/
   sizeof(PyConnectMethod),      /*tp_basicsize*/
   0,                         /*tp_itemsize*/
@@ -116,7 +121,6 @@ static PyTypeObject PyConnectMethodType = {
   0,                        /* tp_alloc */
   0,                        /* tp_new */
 };
-
 /**
 *  Static method to initiate PyConnect extension module
  *
@@ -204,7 +208,11 @@ PyConnectObject::PyConnectObject( const char * name, int id, const char * desc, 
   PyObject * idObj = PyInt_FromLong( id );
   PyDict_SetItemString( this->myDict_, "id", idObj );
   Py_DECREF( idObj );
+#if PY_MAJOR_VERSION >= 3
+  PyObject * nameObj = PyUnicode_FromString( name );
+#else
   PyObject * nameObj = PyString_FromString( name );
+#endif
   PyDict_SetItemString( this->myDict_, "__name__", nameObj );
   Py_DECREF( nameObj );
 }
@@ -222,7 +230,11 @@ void PyConnectObject::init( char * name, int id, char * desc )
   PyObject * idObj = PyInt_FromLong( id );
   PyDict_SetItemString( this->myDict_, "id", idObj );
   Py_DECREF( idObj );
+#if PY_MAJOR_VERSION >= 3
+  PyObject * nameObj = PyUnicode_FromString( name );
+#else
   PyObject * nameObj = PyString_FromString( name );
+#endif
   PyDict_SetItemString( this->myDict_, "__name__", nameObj );
   Py_DECREF( nameObj );
 }
@@ -239,7 +251,12 @@ void PyConnectObject::setNetworkAddress( struct sockaddr_in & cAddr )
   char cAddrStr[INET_ADDRSTRLEN];
   inet_ntop( AF_INET, &cAddr.sin_addr.s_addr, cAddrStr, INET_ADDRSTRLEN );
 
+#if PY_MAJOR_VERSION >= 3
+  PyObject * ipObj = PyUnicode_FromString( cAddrStr );
+#else
   PyObject * ipObj = PyString_FromString( cAddrStr );
+#endif
+
   PyDict_SetItemString( this->myDict_, "__ip__", ipObj );
   Py_DECREF( ipObj );
 }
@@ -283,8 +300,25 @@ PyObject * PyConnectObject::pyNew( PyTypeObject * type, PyObject * args,
   {
     return NULL;
   }
+#if PY_MAJOR_VERSION >= 3
+  PyObject * unicodeobj1 = PyUnicode_FromObject( py_name );
+  PyObject * unicodeobj2 = NULL;
+  char * namestr = PyUnicode_AsUTF8( unicodeobj1 );
+  char * docstr = NULL;
+  if (py_doc) {
+    unicodeobj2 = PyUnicode_FromObject( py_doc );
+    docstr = PyUnicode_AsUTF8( unicodeobj2 );
+  }
+  Py_DECREF( unicodeobj1 );
+  PyObject * connobj = (PyObject *) new PyConnectObject( namestr, id, docstr );
+  if (unicodeobj2) {
+    Py_DECREF( unicodeobj2 );
+  }
+  return connobj;
+#else
   return (PyObject *) new PyConnectObject( PyString_AS_STRING( py_name ),
     id, py_doc ? PyString_AS_STRING( py_doc ) : NULL );
+#endif
 }
 
 int PyConnectObject::pyInit( PyConnectObject * self, PyObject * args,
@@ -320,7 +354,11 @@ void PyConnectObject::addNewMethod( std::string & metdName,
 PyObject * PyConnectObject::getAttribute( char * name )
 {
   if (!strcmp( name, "__doc__" )) {
+#if PY_MAJOR_VERSION >= 3
+    return PyUnicode_FromString( this->desc_.c_str() );
+#else
     return PyString_FromString( this->desc_.c_str() );
+#endif
   }
 
   if (!strcmp( name, "__nocallback__" )) {
@@ -370,7 +408,11 @@ PyObject * PyConnectObject::getAttribute( char * name )
     return otherAttr;
   }
   else { // let python generic get attribute have a go
+#if PY_MAJOR_VERSION >= 3
+    PyObject * pName = PyUnicode_FromString( name );
+#else
     PyObject * pName = PyString_FromString( name );
+#endif
     PyObject * pResult = PyObject_GenericGetAttr( this, pName );
     Py_DECREF( pName );
     return pResult;
@@ -404,7 +446,13 @@ int PyConnectObject::setAttribute( char * name, PyObject * value )
     return -1;
   }
   if (!strcmp( name, "__doc__" )) {
+#if PY_MAJOR_VERSION >= 3
+    PyObject * unicodeobj = PyUnicode_FromObject( value );
+    this->desc_ = std::string( PyUnicode_AsUTF8( unicodeobj ) );
+    Py_DECREF( unicodeobj );
+#else
     this->desc_ = std::string( PyString_AsString( value ) );
+#endif
     return 0;
   }
 
@@ -644,8 +692,20 @@ PyConnectStub * PyConnectStub::init( PyOutputWriter * pow )
     assert( PyType_Ready(&PyConnectObjectType) >= 0 );
     assert( PyType_Ready(&PyConnectMethodType) >= 0 );
 
+#if PY_MAJOR_VERSION >= 3
+    PyModuleDef * def = new PyModuleDef();
+    std::memset( def, 0, sizeof( PyModuleDef ) );
+    def->m_name = "PyConnect";
+    def->m_doc = PyConnect_doc;
+    def->m_size = -1;
+    def->m_methods = PyConnect_methods;
+    Py_INCREF( def );
+    PyObject * pyConnect = PyModule_Create( def );
+#else
     PyObject * pyConnect = 
       Py_InitModule3( "PyConnect", PyConnect_methods, PyConnect_doc );
+#endif
+
 
     Py_INCREF( &PyConnectObjectType );
     Py_INCREF( &PyConnectMethodType );
@@ -1051,7 +1111,11 @@ PyConnectMethod::PyConnectMethod( PyConnectObject * owner, std::string & name,
   myMetdDef_.ml_doc = 0;
   pyFunction_ = PyCFunction_New( &myMetdDef_, this );
   ownerClassObj_ = PyObject_GetAttrString( owner_, "__class__" );
+#if PY_MAJOR_VERSION >= 3
+  metdObj_ = PyMethod_New( pyFunction_, owner_ );
+#else
   metdObj_ = PyMethod_New( pyFunction_, owner_, ownerClassObj_ );
+#endif
 }
 
 PyObject * PyConnectMethod::pyCallRouter( PyObject * self, PyObject * args )
@@ -1212,8 +1276,15 @@ PyObject * PyConnectStub::PyConnect_disconnect( PyObject *self, PyObject * args 
     // PyArg_ParseTuple will set the error status.
     return NULL;
   }
+#if PY_MAJOR_VERSION >=  3
+  if (PyUnicode_Check( obj )) {
+    PyObject * unicodeobj = PyUnicode_FromObject( obj );
+    std::string objName = PyUnicode_AsUTF8( unicodeobj );
+    Py_DECREF( unicodeobj );
+#else
   if (PyString_Check( obj )) {
     std::string objName = PyString_AsString( obj );
+#endif
     pyConnectbj = PyConnectStub::instance()->findModuleByName( objName );
   }
   else if (PyObject_IsInstance(obj, (PyObject *) &PyConnectObjectType)) {

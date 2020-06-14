@@ -58,7 +58,7 @@ elif osname == 'posix':
           macro.append(('WITH_BIG_ENDIAN', None))
           break
 else:
-    print "unknow platform. quit"
+    print( "unknow platform. quit" )
     exit( -1 )
 
 module1 = Extension('PyConnect',
@@ -70,7 +70,7 @@ module1 = Extension('PyConnect',
                     'PyConnectNetComm.cpp','PyConnectStub.cpp','PyConnectCommon.cpp'])
 
 setup (name = 'PyConnect',
-       version = '0.2.3',
+       version = '0.2.4',
        description = 'This is a Python extension module for PyConnect',
        author = 'Xun Wang',
        author_email = 'Wang.Xun@gmail.com',

@@ -139,10 +139,26 @@ public:
   void init( char * name, int id = -1, char * desc = NULL );
   ~PyConnectObject();
 
-  static PyObject * getAttr( PyObject * pObject, PyObject * attrName )
-    { return static_cast<PyConnectObject *>(pObject)->getAttribute( PyString_AS_STRING( attrName ) ); }
-  static int setAttr( PyObject * pObject, PyObject * attrName, PyObject * value )
-    { return static_cast<PyConnectObject *>(pObject)->setAttribute( PyString_AS_STRING( attrName ), value ); }
+  static PyObject * getAttr( PyObject * pObject, PyObject * attrName ) {
+#if PY_MAJOR_VERSION >= 3
+    PyObject * unicodeobj = PyUnicode_FromObject( attrName );
+    std::string retstr = PyUnicode_AsUTF8( unicodeobj );
+    Py_DECREF( unicodeobj );
+    return static_cast<PyConnectObject *>(pObject)->getAttribute( (char*)retstr.c_str() );
+#else
+    return static_cast<PyConnectObject *>(pObject)->getAttribute( PyString_AS_STRING( attrName ) );
+#endif    
+  }
+  static int setAttr( PyObject * pObject, PyObject * attrName, PyObject * value ) {
+#if PY_MAJOR_VERSION >= 3
+    PyObject * unicodeobj = PyUnicode_FromObject( attrName );
+    std::string retstr = PyUnicode_AsUTF8( unicodeobj );
+    Py_DECREF( unicodeobj );
+    return static_cast<PyConnectObject *>(pObject)->setAttribute( (char*)retstr.c_str(), value );
+#else
+    return static_cast<PyConnectObject *>(pObject)->setAttribute( PyString_AS_STRING( attrName ), value );
+#endif    
+  }
 
   static PyObject * pyNew( PyTypeObject * type, PyObject * args,
                PyObject * kwds );
