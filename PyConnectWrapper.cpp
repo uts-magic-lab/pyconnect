@@ -18,222 +18,221 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <iterator>
 #include "PyConnectWrapper.h"
+#include <iterator>
 
 namespace pyconnect {
 
-Attribute::Attribute( const char * desc, PyConnectType::Type type, int (*getrawfn)( unsigned char * & ),
-            void (*getfn)( int, int ), void (*setfn)( int, unsigned char * &, int &, int ) )
-{
-  this->desc = std::string( desc );
+Attribute::Attribute(const char *desc, PyConnectType::Type type,
+                     int (*getrawfn)(unsigned char *&), void (*getfn)(int, int),
+                     void (*setfn)(int, unsigned char *&, int &, int)) {
+  this->desc = std::string(desc);
   this->type = type;
   this->attrGetFn = getfn;
   this->attrSetFn = setfn;
   this->getRawValueFn = getrawfn;
 }
 
-Method::Method( const char * desc, PyConnectType::Type type,
-        void (*accessFn)( int, unsigned char * &, int &, int ),
-        Arguments & args )
-{
-  this->desc = std::string( desc );
+Method::Method(const char *desc, PyConnectType::Type type,
+               void (*accessFn)(int, unsigned char *&, int &, int),
+               Arguments &args) {
+  this->desc = std::string(desc);
   this->type = type;
   this->args_ = args;
   this->accessFn_ = accessFn;
 }
 
-Argument::Argument( const char * name, const char * desc,
-                   PyConnectType::Type type, bool isOptional )
-{
+Argument::Argument(const char *name, const char *desc, PyConnectType::Type type,
+                   bool isOptional) {
 #ifdef WIN32
-  strncpy_s( this->name, 256, name, _TRUNCATE );
+  strncpy_s(this->name, 256, name, _TRUNCATE);
 #else
-  strncpy( this->name, name, 255 );
+  strncpy(this->name, name, 255);
   this->name[255] = '\0';
 #endif
-  this->desc = std::string( desc );
+  this->desc = std::string(desc);
   this->type = type;
   this->isOptional_ = isOptional;
 }
 
-Method::~Method()
-{
-  for (Arguments::iterator aiter = args_.begin();
-     aiter!= args_.end(); aiter++ )
-  {
+Method::~Method() {
+  for (Arguments::iterator aiter = args_.begin(); aiter != args_.end();
+       aiter++) {
     delete *aiter;
   }
   args_.clear();
 }
 
-PyConnectModule::PyConnectModule( const std::string & name, const std::string & desc, OObject * oobject )
-{
+PyConnectModule::PyConnectModule(const std::string &name,
+                                 const std::string &desc, OObject *oobject) {
   this->name = name;
   this->desc = desc;
   this->oobject_ = oobject;
 }
 
-PyConnectModule::~PyConnectModule()
-{
+PyConnectModule::~PyConnectModule() {
   for (Attributes::iterator aiter = attributes.begin();
-     aiter!= attributes.end(); aiter++ )
-  {
+       aiter != attributes.end(); aiter++) {
     delete aiter->second;
   }
   attributes.clear();
-  
-  for (Methods::iterator miter = methods.begin();
-     miter != methods.end(); miter++ )
-  {
+
+  for (Methods::iterator miter = methods.begin(); miter != methods.end();
+       miter++) {
     delete miter->second;
   }
   methods.clear();
 }
 
-PyConnectWrapper * PyConnectWrapper::s_pPyConnectWrapper = NULL;
+PyConnectWrapper *PyConnectWrapper::s_pPyConnectWrapper = NULL;
 
-void PyConnectWrapper::init( PyConnectModule * pModule )
-{
+void PyConnectWrapper::init(PyConnectModule *pModule) {
   if (s_pPyConnectWrapper) {
     if (!s_pPyConnectWrapper->pPyConnectModule_)
       delete s_pPyConnectWrapper->pPyConnectModule_;
     s_pPyConnectWrapper->pPyConnectModule_ = pModule;
-  }
-  else {
-    s_pPyConnectWrapper = new PyConnectWrapper( pModule );
+  } else {
+    s_pPyConnectWrapper = new PyConnectWrapper(pModule);
   }
 }
 
-void PyConnectWrapper::declarePyConnectModule( int serverId, bool toBroadcast )
-{
-  unsigned char * dataBuffer = NULL;
-  
+void PyConnectWrapper::declarePyConnectModule(int serverId, bool toBroadcast) {
+  unsigned char *dataBuffer = NULL;
+
   if (!pPyConnectModule_)
     return;
 
   int nameLen = pPyConnectModule_->name.length();
   int descLen = pPyConnectModule_->desc.length();
-  int dsl = packedIntLen( descLen );
+  int dsl = packedIntLen(descLen);
   int dataLength = nameLen + descLen + dsl;
   int totalMsgSize = 4 + dataLength;
   dataBuffer = new unsigned char[totalMsgSize];
 
-  unsigned char * bufPtr = dataBuffer;
-  
-  *bufPtr = (unsigned char)(MODULE_DECLARE << 4 | (serverId & 0xf)); bufPtr++;
+  unsigned char *bufPtr = dataBuffer;
 
-#ifdef __clang__ // notify the other end that we evaluate method argument in a "reversed" order
+  *bufPtr = (unsigned char)(MODULE_DECLARE << 4 | (serverId & 0xf));
+  bufPtr++;
+
+#ifdef __clang__ // notify the other end that we evaluate method argument in a
+                 // "reversed" order
   *bufPtr++ = 1;
 #else
   *bufPtr++ = 0;
 #endif
 
-  packString( (unsigned char*)pPyConnectModule_->name.data(), nameLen, bufPtr );
-  packString( (unsigned char*)pPyConnectModule_->desc.data(), descLen, bufPtr, true );
+  packString((unsigned char *)pPyConnectModule_->name.data(), nameLen, bufPtr);
+  packString((unsigned char *)pPyConnectModule_->desc.data(), descLen, bufPtr,
+             true);
 
   *bufPtr = PYCONNECT_MSG_END;
-  
-  this->dispatchMessage( dataBuffer, totalMsgSize, toBroadcast );
-  
-  delete [] dataBuffer;
+
+  this->dispatchMessage(dataBuffer, totalMsgSize, toBroadcast);
+
+  delete[] dataBuffer;
 }
 
-void PyConnectWrapper::declareModuleAttrMetd( int serverId )
-{
-  unsigned char * dataBuffer = NULL;
-  
+void PyConnectWrapper::declareModuleAttrMetd(int serverId) {
+  unsigned char *dataBuffer = NULL;
+
   if (!pPyConnectModule_)
     return;
-  
+
   // calculate required buffer size
   int attrlens = 0;
   int metdlens = 0;
-  
+
   int attrValueLens = 0;
-  AttrValuePack * attrValuePacks = new AttrValuePack[pPyConnectModule_->attributes.size()];
+  AttrValuePack *attrValuePacks =
+      new AttrValuePack[pPyConnectModule_->attributes.size()];
   int attId = 0;
   for (Attributes::iterator aiter = pPyConnectModule_->attributes.begin();
-    aiter != pPyConnectModule_->attributes.end(); aiter++)
-  {
+       aiter != pPyConnectModule_->attributes.end(); aiter++) {
     attrlens += aiter->first.length();
-    attrValuePacks[attId].len = aiter->second->getRawValue( attrValuePacks[attId].buf );
+    attrValuePacks[attId].len =
+        aiter->second->getRawValue(attrValuePacks[attId].buf);
     attrValueLens += attrValuePacks[attId].len;
     attId++;
   }
 
   int nofattrs = pPyConnectModule_->attributes.size();
-  int totalAttrSize = attrlens + attrValueLens + nofattrs * 2;  // 2 == type + name length
+  int totalAttrSize =
+      attrlens + attrValueLens + nofattrs * 2; // 2 == type + name length
 
   for (Methods::iterator miter = pPyConnectModule_->methods.begin();
-    miter != pPyConnectModule_->methods.end(); miter++)
-  {
+       miter != pPyConnectModule_->methods.end(); miter++) {
     metdlens += miter->first.length();
-    Method * curMetd = miter->second;
+    Method *curMetd = miter->second;
     metdlens += curMetd->args().size(); // argument type 1 byte per argument
   }
   int nofmethods = pPyConnectModule_->methods.size();
-  int totalMetdSize = metdlens + nofmethods * 3;  // 3 == type + name length + nofargs
+  int totalMetdSize =
+      metdlens + nofmethods * 3; // 3 == type + name length + nofargs
 
-  int asl = packedIntLen( nofattrs );
-  int msl = packedIntLen( nofmethods );
+  int asl = packedIntLen(nofattrs);
+  int msl = packedIntLen(nofmethods);
 
   int totalMsgSize = 3 + asl + msl + totalAttrSize + totalMetdSize;
 
-  //DEBUG_MSG( "attrValueLens %d total msg size %d\n", attrValueLens, totalMsgSize );
+  // DEBUG_MSG( "attrValueLens %d total msg size %d\n", attrValueLens,
+  // totalMsgSize );
 
   dataBuffer = new unsigned char[totalMsgSize];
-  
-  unsigned char * bufPtr = dataBuffer;
-  
-  *bufPtr = (unsigned char) (ATTR_METD_EXPOSE << 4 | (serverId & 0xf)); bufPtr++;
-  *bufPtr = (unsigned char) serverMap_[serverId].assignedModuleID; bufPtr++;
+
+  unsigned char *bufPtr = dataBuffer;
+
+  *bufPtr = (unsigned char)(ATTR_METD_EXPOSE << 4 | (serverId & 0xf));
+  bufPtr++;
+  *bufPtr = (unsigned char)serverMap_[serverId].assignedModuleID;
+  bufPtr++;
 
   // pack available attributes information
-  packIntToStr( nofattrs, bufPtr );
+  packIntToStr(nofattrs, bufPtr);
   attId = 0;
   for (Attributes::iterator aiter = pPyConnectModule_->attributes.begin();
-    aiter != pPyConnectModule_->attributes.end(); aiter++)
-  {
-    Attribute * attr = aiter->second;
+       aiter != pPyConnectModule_->attributes.end(); aiter++) {
+    Attribute *attr = aiter->second;
     char flag = (attr->isWritable() ? 1 : 0) << 6;
     flag |= attr->type & 0x3f;
-    *bufPtr = flag; bufPtr++;
-    packString( (unsigned char*)aiter->first.data(), aiter->first.length(), bufPtr );
-    memcpy( bufPtr, attrValuePacks[attId].buf, attrValuePacks[attId].len );
+    *bufPtr = flag;
+    bufPtr++;
+    packString((unsigned char *)aiter->first.data(), aiter->first.length(),
+               bufPtr);
+    memcpy(bufPtr, attrValuePacks[attId].buf, attrValuePacks[attId].len);
     bufPtr += attrValuePacks[attId].len;
     // clean up attrValuePacks
     attrValuePacks[attId].len = 0;
-    delete [] attrValuePacks[attId].buf;
+    delete[] attrValuePacks[attId].buf;
     attId++;
   }
-  // pack available method information  
-  packIntToStr( nofmethods, bufPtr );
+  // pack available method information
+  packIntToStr(nofmethods, bufPtr);
   for (Methods::iterator miter = pPyConnectModule_->methods.begin();
-    miter != pPyConnectModule_->methods.end(); miter++)
-  {
-    Method * metd = miter->second;
-    *bufPtr = (unsigned char)(metd->type & 0x3f); bufPtr++;
-    packString( (unsigned char*)miter->first.data(), miter->first.length(), bufPtr );
-    *bufPtr = (unsigned char) metd->args().size(); bufPtr++;
+       miter != pPyConnectModule_->methods.end(); miter++) {
+    Method *metd = miter->second;
+    *bufPtr = (unsigned char)(metd->type & 0x3f);
+    bufPtr++;
+    packString((unsigned char *)miter->first.data(), miter->first.length(),
+               bufPtr);
+    *bufPtr = (unsigned char)metd->args().size();
+    bufPtr++;
     for (Arguments::iterator iter = metd->args().begin();
-      iter != metd->args().end();iter++)
-    {
+         iter != metd->args().end(); iter++) {
       char flag = ((*iter)->isOptional() ? 1 : 0) << 6;
       flag |= (*iter)->type & 0x3f;
-      *bufPtr = flag; bufPtr++;
+      *bufPtr = flag;
+      bufPtr++;
     }
   }
 
   *bufPtr = PYCONNECT_MSG_END;
 
-  this->dispatchMessage( dataBuffer, totalMsgSize );
-  delete [] dataBuffer;
+  this->dispatchMessage(dataBuffer, totalMsgSize);
+  delete[] dataBuffer;
 }
 
-void PyConnectWrapper::declareModuleAttrMetdDesc( int serverId )
-{
-  unsigned char * dataBuffer = NULL;
+void PyConnectWrapper::declareModuleAttrMetdDesc(int serverId) {
+  unsigned char *dataBuffer = NULL;
 
   if (!pPyConnectModule_)
     return;
@@ -244,78 +243,78 @@ void PyConnectWrapper::declareModuleAttrMetdDesc( int serverId )
   int metdlens = 0;
 
   for (Attributes::iterator aiter = pPyConnectModule_->attributes.begin();
-    aiter != pPyConnectModule_->attributes.end(); aiter++)
-  {
+       aiter != pPyConnectModule_->attributes.end(); aiter++) {
     descLen = aiter->second->getDescription().length();
-    attrlens += descLen + packedIntLen( descLen );
+    attrlens += descLen + packedIntLen(descLen);
   }
 
   int nofattrs = pPyConnectModule_->attributes.size();
   int totalAttrSize = attrlens;
 
   for (Methods::iterator miter = pPyConnectModule_->methods.begin();
-    miter != pPyConnectModule_->methods.end(); miter++)
-  {
+       miter != pPyConnectModule_->methods.end(); miter++) {
     descLen = miter->second->getDescription().length();
-    metdlens += descLen + packedIntLen( descLen );
+    metdlens += descLen + packedIntLen(descLen);
   }
   int nofmethods = pPyConnectModule_->methods.size();
   int totalMetdSize = metdlens;
 
-  int asl = packedIntLen( nofattrs );
-  int msl = packedIntLen( nofmethods );
+  int asl = packedIntLen(nofattrs);
+  int msl = packedIntLen(nofmethods);
 
   int totalMsgSize = 3 + asl + msl + totalAttrSize + totalMetdSize;
 
   dataBuffer = new unsigned char[totalMsgSize];
 
-  unsigned char * bufPtr = dataBuffer;
+  unsigned char *bufPtr = dataBuffer;
 
-  *bufPtr = (unsigned char) (ATTR_METD_DESC << 4 | (serverId & 0xf)); bufPtr++;
-  *bufPtr = (unsigned char) serverMap_[serverId].assignedModuleID; bufPtr++;
+  *bufPtr = (unsigned char)(ATTR_METD_DESC << 4 | (serverId & 0xf));
+  bufPtr++;
+  *bufPtr = (unsigned char)serverMap_[serverId].assignedModuleID;
+  bufPtr++;
 
   // pack available attributes information
-  packIntToStr( nofattrs, bufPtr );
+  packIntToStr(nofattrs, bufPtr);
   for (Attributes::iterator aiter = pPyConnectModule_->attributes.begin();
-    aiter != pPyConnectModule_->attributes.end(); aiter++)
-  {
-    Attribute * attr = aiter->second;
-    packString( (unsigned char*)attr->getDescription().data(),
-                  attr->getDescription().length(), bufPtr, true );
+       aiter != pPyConnectModule_->attributes.end(); aiter++) {
+    Attribute *attr = aiter->second;
+    packString((unsigned char *)attr->getDescription().data(),
+               attr->getDescription().length(), bufPtr, true);
   }
   // pack available method information
-  packIntToStr( nofmethods, bufPtr );
+  packIntToStr(nofmethods, bufPtr);
   for (Methods::iterator miter = pPyConnectModule_->methods.begin();
-    miter != pPyConnectModule_->methods.end(); miter++)
-  {
-    Method * metd = miter->second;
-    packString( (unsigned char*)metd->getDescription().data(),
-                  metd->getDescription().length(), bufPtr, true );
+       miter != pPyConnectModule_->methods.end(); miter++) {
+    Method *metd = miter->second;
+    packString((unsigned char *)metd->getDescription().data(),
+               metd->getDescription().length(), bufPtr, true);
   }
 
   *bufPtr = PYCONNECT_MSG_END;
 
-  this->dispatchMessage( dataBuffer, totalMsgSize );
-  delete [] dataBuffer;
+  this->dispatchMessage(dataBuffer, totalMsgSize);
+  delete[] dataBuffer;
 }
 
-MesgProcessResult PyConnectWrapper::processInput( unsigned char * recData, int bytesReceived, struct sockaddr_in & cAddr, bool skipdecrypt )
-{
-  unsigned char * message = NULL;
+MesgProcessResult PyConnectWrapper::processInput(unsigned char *recData,
+                                                 int bytesReceived,
+                                                 struct sockaddr_in &cAddr,
+                                                 bool skipdecrypt) {
+  unsigned char *message = NULL;
   int messageSize = 0;
 
   if (bytesReceived < 1) {
-    ERROR_MSG( "PyConnectWrapper::processInput received empty data? Ignore.\n" );
+    ERROR_MSG("PyConnectWrapper::processInput received empty data? Ignore.\n");
     return MESG_PROCESSED_FAILED;
   }
 
   if (skipdecrypt) {
     message = recData;
     messageSize = bytesReceived;
-  }
-  else {
-    if (decryptMessage( recData, (int)bytesReceived, &message, (int *)&messageSize ) != 1) {
-      WARNING_MSG( "Unable to decrypt incoming messasge.\n" );
+  } else {
+    if (decryptMessage(recData, (int)bytesReceived, &message,
+                       (int *)&messageSize) != 1) {
+      WARNING_MSG("Unable to decrypt incoming messasge.\n");
       return MESG_PROCESSED_FAILED;
     }
   }
@@ -323,13 +322,14 @@ MesgProcessResult PyConnectWrapper::processInput( unsigned char * recData, int b
   int msgType = (message[0] >> 4) & 0xf;
   int serverId = message[0] & 0xf;
   if (serverId == -1 || msgType == 0) {
-    ERROR_MSG( "PyConnectWrapper::processInput invalid message header! "
-      "serverId = %d, msgType = %d. Ignore.\n", serverId, msgType );
+    ERROR_MSG("PyConnectWrapper::processInput invalid message header! "
+              "serverId = %d, msgType = %d. Ignore.\n",
+              serverId, msgType);
     return MESG_PROCESSED_FAILED;
   }
 
   message++;
-  ServerMap::iterator siter = serverMap_.find( serverId );
+  ServerMap::iterator siter = serverMap_.find(serverId);
   if (msgType == MODULE_DISCOVERY) {
     // check server/module mapping
     if (siter == serverMap_.end()) {
@@ -338,29 +338,27 @@ MesgProcessResult PyConnectWrapper::processInput( unsigned char * recData, int b
       sinfo.attributeUpdate = true;
       sinfo.sAddr = cAddr;
       serverMap_[serverId] = sinfo;
-      declarePyConnectModule( serverId, false );
+      declarePyConnectModule(serverId, false);
       return MESG_PROCESSED_OK;
-    }
-    else {
-      WARNING_MSG( "PyConnectWrapper::processInput server %d is already registerd! Ignore.\n",
-        serverId );
+    } else {
+      WARNING_MSG("PyConnectWrapper::processInput server %d is already "
+                  "registerd! Ignore.\n",
+                  serverId);
       return MESG_TO_SHUTDOWN;
     }
-  }
-  else if (msgType == SERVER_SHUTDOWN) {
+  } else if (msgType == SERVER_SHUTDOWN) {
     if (siter != serverMap_.end()) {
-      INFO_MSG( "Remove server %d\n", serverId );
+      INFO_MSG("Remove server %d\n", serverId);
 #ifndef OPENR_OBJECT
-      pPyConnectModule_->oobject()->onClientDisconnected( serverId );
+      pPyConnectModule_->oobject()->onClientDisconnected(serverId);
 #endif
-      serverMap_.erase( serverId );
+      serverMap_.erase(serverId);
     }
     return MESG_TO_SHUTDOWN;
-  }
-  else if (msgType == MODULE_ASSIGN_ID) {
+  } else if (msgType == MODULE_ASSIGN_ID) {
     int modId = (int)*message++;
     int dummyLen = 0;
-    std::string mName = unpackString( message, dummyLen );
+    std::string mName = unpackString(message, dummyLen);
     if (mName == pPyConnectModule_->name) {
       if (siter == serverMap_.end()) { // new server
         ServerInfo sinfo;
@@ -368,22 +366,21 @@ MesgProcessResult PyConnectWrapper::processInput( unsigned char * recData, int b
         sinfo.attributeUpdate = true;
         sinfo.sAddr = cAddr;
         serverMap_[serverId] = sinfo;
-      }
-      else {
+      } else {
         siter->second.assignedModuleID = modId;
       }
 #ifndef OPENR_OBJECT
-      pPyConnectModule_->oobject()->onClientConnected( serverId );
+      pPyConnectModule_->oobject()->onClientConnected(serverId);
 #endif
-      declareModuleAttrMetd( serverId );
-      declareModuleAttrMetdDesc( serverId );
+      declareModuleAttrMetd(serverId);
+      declareModuleAttrMetdDesc(serverId);
     }
     return MESG_PROCESSED_OK;
-  }
-  else {
+  } else {
     if (siter == serverMap_.end()) {
-      WARNING_MSG( "PyConnectWrapper::processInput server %d is not registerd! Ignore.\n",
-                   serverId );
+      WARNING_MSG("PyConnectWrapper::processInput server %d is not registerd! "
+                  "Ignore.\n",
+                  serverId);
       return MESG_PROCESSED_FAILED;
     }
     if (siter->second.assignedModuleID != (int)*message++) {
@@ -392,215 +389,218 @@ MesgProcessResult PyConnectWrapper::processInput( unsigned char * recData, int b
     }
   }
   switch (msgType) {
-    case CALL_ATTR_METD:
-    case CALL_ATTR_METD_NOCB:
-    {
-      this->noResponse_ = (msgType == CALL_ATTR_METD_NOCB);
-      int rDataSize = 0;
-      int dummyLen = 0;
-      unpackLENumber( rDataSize, message, dummyLen );
-      int attrId = unpackStrToInt( message, rDataSize );
-      if (attrId < (int)pPyConnectModule_->attributes.size()) {
-        Attributes::iterator iter = pPyConnectModule_->attributes.begin();
-        advance( iter , attrId );
-        iter->second->setAttrValue( attrId, message, rDataSize, serverId );
-      }
-      else {
-        int metdId = attrId - pPyConnectModule_->attributes.size();
-        Methods::iterator iter = pPyConnectModule_->methods.begin();
-        advance( iter, metdId );
-        iter->second->methodCall( metdId, message, rDataSize, serverId );
-      }
-      this->noResponse_ = false; //reset
+  case CALL_ATTR_METD:
+  case CALL_ATTR_METD_NOCB: {
+    this->noResponse_ = (msgType == CALL_ATTR_METD_NOCB);
+    int rDataSize = 0;
+    int dummyLen = 0;
+    unpackLENumber(rDataSize, message, dummyLen);
+    int attrId = unpackStrToInt(message, rDataSize);
+    if (attrId < (int)pPyConnectModule_->attributes.size()) {
+      Attributes::iterator iter = pPyConnectModule_->attributes.begin();
+      advance(iter, attrId);
+      iter->second->setAttrValue(attrId, message, rDataSize, serverId);
+    } else {
+      int metdId = attrId - pPyConnectModule_->attributes.size();
+      Methods::iterator iter = pPyConnectModule_->methods.begin();
+      advance(iter, metdId);
+      iter->second->methodCall(metdId, message, rDataSize, serverId);
     }
-      break;
-    case ATTR_VALUE_UPDATE:
-    {
-      int rDataSize = 0;
-      int dummyLen = 0;
-      unpackLENumber( rDataSize, message, dummyLen );
-      int attrId = unpackStrToInt( message, rDataSize );
-      if (attrId < (int)pPyConnectModule_->attributes.size()) {
-        Attributes::iterator iter = pPyConnectModule_->attributes.begin();
-        advance( iter , attrId );
-        iter->second->getAttrValue( attrId, serverId );
-      }
-      else {
-        ERROR_MSG( "PyConnectWrapper::processInput invalid attribute id %d! Ignore.\n",
-              attrId );
-      }
+    this->noResponse_ = false; // reset
+  } break;
+  case ATTR_VALUE_UPDATE: {
+    int rDataSize = 0;
+    int dummyLen = 0;
+    unpackLENumber(rDataSize, message, dummyLen);
+    int attrId = unpackStrToInt(message, rDataSize);
+    if (attrId < (int)pPyConnectModule_->attributes.size()) {
+      Attributes::iterator iter = pPyConnectModule_->attributes.begin();
+      advance(iter, attrId);
+      iter->second->getAttrValue(attrId, serverId);
+    } else {
+      ERROR_MSG(
+          "PyConnectWrapper::processInput invalid attribute id %d! Ignore.\n",
+          attrId);
     }
-      break;
-    case GET_ATTR_METD_DESC:
-    {
-      int rDataSize = 1;
-      int attrId = unpackStrToInt( message, rDataSize );
-      if (attrId < (int)pPyConnectModule_->attributes.size()) {
-        Attributes::iterator iter = pPyConnectModule_->attributes.begin();
-        advance( iter , attrId );
-        sendAttrMetdResponse( NO_ERRORS, attrId, iter->second->desc.length(),
-            (unsigned char*)iter->second->desc.data(), serverId );
-      }
-      else {
-        int metdId = attrId - pPyConnectModule_->attributes.size();
-        Methods::iterator iter = pPyConnectModule_->methods.begin();
-        advance( iter, metdId );
-        sendAttrMetdResponse( NO_ERRORS, metdId, iter->second->desc.length(),
-                           (unsigned char*)iter->second->desc.data(), serverId );
-      }
+  } break;
+  case GET_ATTR_METD_DESC: {
+    int rDataSize = 1;
+    int attrId = unpackStrToInt(message, rDataSize);
+    if (attrId < (int)pPyConnectModule_->attributes.size()) {
+      Attributes::iterator iter = pPyConnectModule_->attributes.begin();
+      advance(iter, attrId);
+      sendAttrMetdResponse(NO_ERRORS, attrId, iter->second->desc.length(),
+                           (unsigned char *)iter->second->desc.data(),
+                           serverId);
+    } else {
+      int metdId = attrId - pPyConnectModule_->attributes.size();
+      Methods::iterator iter = pPyConnectModule_->methods.begin();
+      advance(iter, metdId);
+      sendAttrMetdResponse(NO_ERRORS, metdId, iter->second->desc.length(),
+                           (unsigned char *)iter->second->desc.data(),
+                           serverId);
     }
-      break;
-    default:
-      ERROR_MSG( "PyConnectWrapper::processInput invalid message header! Ignore.\n" );
-      return MESG_PROCESSED_FAILED;
+  } break;
+  default:
+    ERROR_MSG(
+        "PyConnectWrapper::processInput invalid message header! Ignore.\n");
+    return MESG_PROCESSED_FAILED;
   }
   if (*message++ != pyconnect::PYCONNECT_MSG_END) {
-    WARNING_MSG( "PythonServer::processInput: possible message corruption. msg id %d\n",
-                  msgType );
+    WARNING_MSG(
+        "PythonServer::processInput: possible message corruption. msg id %d\n",
+        msgType);
   }
 
   return MESG_PROCESSED_OK;
 }
 
-PyConnectMsgStatus PyConnectWrapper::validateAttribute( int attrId, const char * attrName )
-{
+PyConnectMsgStatus PyConnectWrapper::validateAttribute(int attrId,
+                                                       const char *attrName) {
   PyConnectMsgStatus status = NO_ERRORS;
-  Attributes::iterator oiter = pPyConnectModule_->attributes.find( std::string( attrName ) );
+  Attributes::iterator oiter =
+      pPyConnectModule_->attributes.find(std::string(attrName));
   Attributes::iterator iter = pPyConnectModule_->attributes.begin();
-  advance( iter, attrId );
+  advance(iter, attrId);
 
   if (oiter != iter) {
-    ERROR_MSG( "PyConnectWrapper::validateAttribute attribute %s index mismatch."
-      "Provided index %d\n", attrName, attrId );
+    ERROR_MSG("PyConnectWrapper::validateAttribute attribute %s index mismatch."
+              "Provided index %d\n",
+              attrName, attrId);
     status = INDEX_MISMATCH;
   }
-    
+
   return status;
 }
 
-PyConnectMsgStatus PyConnectWrapper::validateMethod( int metdId, const char * metdName )
-{
+PyConnectMsgStatus PyConnectWrapper::validateMethod(int metdId,
+                                                    const char *metdName) {
   PyConnectMsgStatus status = NO_ERRORS;
-  Methods::iterator oiter = pPyConnectModule_->methods.find( std::string( metdName ) );
+  Methods::iterator oiter =
+      pPyConnectModule_->methods.find(std::string(metdName));
   Methods::iterator iter = pPyConnectModule_->methods.begin();
-  advance( iter, metdId );
+  advance(iter, metdId);
 
   if (oiter != iter) {
-    ERROR_MSG( "PyConnectWrapper::validateMethod method %s index mismatch."
-      "Provided index %d\n", metdName, metdId );
+    ERROR_MSG("PyConnectWrapper::validateMethod method %s index mismatch."
+              "Provided index %d\n",
+              metdName, metdId);
     status = INDEX_MISMATCH;
   }
   return status;
 }
 
-void PyConnectWrapper::sendAttrMetdResponse( int err, int index, int length, 
-  unsigned char * data, int serverId, PyConnectMsg msgType )
-{
-  unsigned char * dataBuffer = NULL;
+void PyConnectWrapper::sendAttrMetdResponse(int err, int index, int length,
+                                            unsigned char *data, int serverId,
+                                            PyConnectMsg msgType) {
+  unsigned char *dataBuffer = NULL;
 
-  int al = packedIntLen( index );
+  int al = packedIntLen(index);
   int dataLength = length + al;
-  int totalMsgSize = 4+sizeof(int)+dataLength;
+  int totalMsgSize = 4 + sizeof(int) + dataLength;
 
   dataBuffer = new unsigned char[totalMsgSize];
 
-  unsigned char * bufPtr = dataBuffer;
-  
-  *bufPtr = (unsigned char) (msgType << 4 | (serverId & 0xf)); bufPtr++;
-  *bufPtr = (unsigned char) serverMap_[serverId].assignedModuleID; bufPtr++;
-  *bufPtr = (unsigned char) err; bufPtr++;
-  packToLENumber( dataLength, bufPtr );
+  unsigned char *bufPtr = dataBuffer;
 
-  packIntToStr( index, bufPtr );
+  *bufPtr = (unsigned char)(msgType << 4 | (serverId & 0xf));
+  bufPtr++;
+  *bufPtr = (unsigned char)serverMap_[serverId].assignedModuleID;
+  bufPtr++;
+  *bufPtr = (unsigned char)err;
+  bufPtr++;
+  packToLENumber(dataLength, bufPtr);
+
+  packIntToStr(index, bufPtr);
   if (length) {
-    memcpy( bufPtr, data, length );
+    memcpy(bufPtr, data, length);
     bufPtr += length;
   }
   *bufPtr = PYCONNECT_MSG_END;
-  
-  this->dispatchMessage( dataBuffer, totalMsgSize );
-  
-  delete [] dataBuffer;
+
+  this->dispatchMessage(dataBuffer, totalMsgSize);
+
+  delete[] dataBuffer;
 }
 
-void PyConnectWrapper::addNewAttribute( const char * attrName, const char * desc,
-  PyConnectType::Type type, int (*getrawfn)( unsigned char * & ), void (*getfn)( int, int ),
-  void (*setfn)( int, unsigned char * &, int &, int ) )
-{
-  if (strlen( attrName ) > 255) {
-    ERROR_MSG( "PyConnectWrapper::addNewAttribute attribute %s name length is"
-        " too long. Igore\n", attrName );
+void PyConnectWrapper::addNewAttribute(
+    const char *attrName, const char *desc, PyConnectType::Type type,
+    int (*getrawfn)(unsigned char *&), void (*getfn)(int, int),
+    void (*setfn)(int, unsigned char *&, int &, int)) {
+  if (strlen(attrName) > 255) {
+    ERROR_MSG("PyConnectWrapper::addNewAttribute attribute %s name length is"
+              " too long. Igore\n",
+              attrName);
     return;
   }
-  
-  Attributes::iterator iter = pPyConnectModule_->attributes.find( std::string( attrName ) );
+
+  Attributes::iterator iter =
+      pPyConnectModule_->attributes.find(std::string(attrName));
 
   if (iter != pPyConnectModule_->attributes.end()) {
-    ERROR_MSG( "PyConnectWrapper::addNewAttribute duplicate attribute %s.\n",
-      attrName );
+    ERROR_MSG("PyConnectWrapper::addNewAttribute duplicate attribute %s.\n",
+              attrName);
     return;
   }
 
-  pPyConnectModule_->attributes[std::string( attrName )] =
-    new Attribute( desc, type, getrawfn, getfn, setfn );
+  pPyConnectModule_->attributes[std::string(attrName)] =
+      new Attribute(desc, type, getrawfn, getfn, setfn);
 }
 
-void PyConnectWrapper::addNewMethod( const char * metdName, const char * desc,
-  PyConnectType::Type type, void (*accessFn)( int, unsigned char * &, int &, int ),
-  Arguments & args )
-{
-  if (strlen( metdName ) > 255) {
-    ERROR_MSG( "PyConnectWrapper::addNewMethod method %s name length is"
-          " too long. Igore\n", metdName );
+void PyConnectWrapper::addNewMethod(
+    const char *metdName, const char *desc, PyConnectType::Type type,
+    void (*accessFn)(int, unsigned char *&, int &, int), Arguments &args) {
+  if (strlen(metdName) > 255) {
+    ERROR_MSG("PyConnectWrapper::addNewMethod method %s name length is"
+              " too long. Igore\n",
+              metdName);
     return;
   }
-  
-  Methods::iterator iter = pPyConnectModule_->methods.find( std::string( metdName ) );
+
+  Methods::iterator iter =
+      pPyConnectModule_->methods.find(std::string(metdName));
 
   if (iter != pPyConnectModule_->methods.end()) {
-    ERROR_MSG( "PyConnectWrapper::addNewMethod duplicate method %s.\n",
-      metdName );
+    ERROR_MSG("PyConnectWrapper::addNewMethod duplicate method %s.\n",
+              metdName);
     return;
   }
 
-  pPyConnectModule_->methods[std::string( metdName )] =
-    new Method( desc, type, accessFn, args );
+  pPyConnectModule_->methods[std::string(metdName)] =
+      new Method(desc, type, accessFn, args);
 }
 
-void PyConnectWrapper::updateMethodAccessFn( const char * metdName,
-  void (*accessFn)( int, unsigned char * &, int &, int ) )
-{
-  Methods::iterator iter = pPyConnectModule_->methods.find( std::string( metdName ) );
+void PyConnectWrapper::updateMethodAccessFn(
+    const char *metdName, void (*accessFn)(int, unsigned char *&, int &, int)) {
+  Methods::iterator iter =
+      pPyConnectModule_->methods.find(std::string(metdName));
 
   if (iter == pPyConnectModule_->methods.end()) {
-    ERROR_MSG( "PyConnectWrapper::updateMethodAccessFn unable to method %s.\n",
-      metdName );
+    ERROR_MSG("PyConnectWrapper::updateMethodAccessFn unable to method %s.\n",
+              metdName);
     return;
   }
 
-  iter->second->methodCall( accessFn );
+  iter->second->methodCall(accessFn);
 }
 
-void PyConnectWrapper::moduleShutdown()
-{
+void PyConnectWrapper::moduleShutdown() {
   int totalMsgSize = 3;
   unsigned char dataBuffer[3];
   dataBuffer[2] = PYCONNECT_MSG_END;
-  
-  for (ServerMap::iterator iter = serverMap_.begin();
-     iter != serverMap_.end(); iter++)
-  {
-    dataBuffer[0] = (unsigned char) (MODULE_SHUTDOWN << 4 | (iter->first & 0xf));
-    dataBuffer[1] = (unsigned char) iter->second.assignedModuleID;
-    this->dispatchMessage( dataBuffer, totalMsgSize );
+
+  for (ServerMap::iterator iter = serverMap_.begin(); iter != serverMap_.end();
+       iter++) {
+    dataBuffer[0] = (unsigned char)(MODULE_SHUTDOWN << 4 | (iter->first & 0xf));
+    dataBuffer[1] = (unsigned char)iter->second.assignedModuleID;
+    this->dispatchMessage(dataBuffer, totalMsgSize);
   }
 
   serverMap_.clear();
   if (pPyConnectModule_) {
     delete pPyConnectModule_;
     pPyConnectModule_ = NULL;
-  }  
+  }
 }
 
-}  // namespace pyconnect
-
+} // namespace pyconnect

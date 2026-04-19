@@ -1,6 +1,6 @@
 /*
  *  PyConnectPyModule.cpp
- *  
+ *
  *  Copyright 2006, 2007 Xun Wang.
  *  This file is part of PyConnect.
  *
@@ -19,8 +19,8 @@
  */
 
 #ifdef WIN32
-#include <windows.h>
 #include <process.h>
+#include <windows.h>
 #else
 #include <pthread.h>
 #endif
@@ -38,12 +38,12 @@ pthread_t g_iothread;
 
 using namespace pyconnect;
 
-PYCONNECT_LOGGING_DECLARE( "pyconnect.log" );
+PYCONNECT_LOGGING_DECLARE("pyconnect.log");
 
 #ifdef WIN32
-void ioprocess_thread( void * arg )
+void ioprocess_thread(void *arg)
 #else
-void * ioprocess_thread( void * arg )
+void *ioprocess_thread(void *arg)
 #endif
 {
   PyConnectNetComm::instance()->continuousProcessing();
@@ -52,8 +52,7 @@ void * ioprocess_thread( void * arg )
 #endif
 }
 
-static void finiPyConnect()
-{
+static void finiPyConnect() {
   // stop the thread first
   PyConnectNetComm::instance()->fini();
   PyConnectStub::instance()->fini();
@@ -61,31 +60,31 @@ static void finiPyConnect()
 
 PyMODINIT_FUNC
 #if PY_MAJOR_VERSION >= 3
-PyInit_PyConnect( void )
+PyInit_PyConnect(void)
 #else
-initPyConnect( void )
+initPyConnect(void)
 #endif
 {
 #ifdef WIN32
-  InitializeCriticalSection( &g_criticalSection );
+  InitializeCriticalSection(&g_criticalSection);
 #else
-  pthread_mutexattr_init( &mta );
-  pthread_mutexattr_settype( &mta, PTHREAD_MUTEX_RECURSIVE );
-  pthread_mutex_init( &g_mutex, &mta );
+  pthread_mutexattr_init(&mta);
+  pthread_mutexattr_settype(&mta, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(&g_mutex, &mta);
 #endif
 
   PYCONNECT_LOGGING_INIT;
   PyEval_InitThreads();
 
-  PyConnectStub * pPyConnectStub = PyConnectStub::init();
-  PyObject * pMod = pPyConnectStub->getPyConnect();
-  Py_INCREF( pMod );
-  PyConnectNetComm::instance()->init( pPyConnectStub );
+  PyConnectStub *pPyConnectStub = PyConnectStub::init();
+  PyObject *pMod = pPyConnectStub->getPyConnect();
+  Py_INCREF(pMod);
+  PyConnectNetComm::instance()->init(pPyConnectStub);
 #ifdef WIN32
-  _beginthread( ioprocess_thread, 0, NULL );
+  _beginthread(ioprocess_thread, 0, NULL);
 #else
-  if (pthread_create( &g_iothread, NULL, ioprocess_thread, NULL)) {
-    ERROR_MSG( "Unable to create thread to handle PyConnect network data\n" );
+  if (pthread_create(&g_iothread, NULL, ioprocess_thread, NULL)) {
+    ERROR_MSG("Unable to create thread to handle PyConnect network data\n");
     abort();
   }
 #endif
@@ -93,6 +92,6 @@ initPyConnect( void )
 #if PY_MAJOR_VERSION >= 3
   return pMod;
 #else
-  atexit( finiPyConnect );
+  atexit(finiPyConnect);
 #endif
 }

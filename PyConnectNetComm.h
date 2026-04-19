@@ -26,11 +26,11 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #else
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #endif
 #include "PyConnectObjComm.h"
 
@@ -46,70 +46,72 @@ extern pthread_mutex_t g_mutex;
 #endif
 
 #ifndef WIN32
-#define PYCONNECT_DOMAINSOCKET_PATH  "/tmp"
+#define PYCONNECT_DOMAINSOCKET_PATH "/tmp"
 #ifdef PYTHON_SERVER
-#define PYCONNECT_SVRSOCKET_PREFIX  "pysvr"
-#define PYCONNECT_CLTSOCKET_PREFIX  "pyclt"
+#define PYCONNECT_SVRSOCKET_PREFIX "pysvr"
+#define PYCONNECT_CLTSOCKET_PREFIX "pyclt"
 #else
-#define PYCONNECT_SVRSOCKET_PREFIX  "pyclt"
-#define PYCONNECT_CLTSOCKET_PREFIX  "pysvr"
+#define PYCONNECT_SVRSOCKET_PREFIX "pyclt"
+#define PYCONNECT_CLTSOCKET_PREFIX "pysvr"
 #endif
-#endif //!WIN32
+#endif //! WIN32
 
 #define PYCONNECT_NETCOMM_PORT 37251
 #ifndef PYCONNECT_BROADCAST_IP
 #ifdef USE_MULTICAST
-#define PYCONNECT_BROADCAST_IP  "230.15.20.20"
+#define PYCONNECT_BROADCAST_IP "230.15.20.20"
 #else
-#define PYCONNECT_BROADCAST_IP  "255.255.255.255" // need to be modified
+#define PYCONNECT_BROADCAST_IP "255.255.255.255" // need to be modified
 #endif
 #endif
-#define PYCONNECT_UDP_BUFFER_SIZE  2048
-#define PYCONNECT_TCP_BUFFER_SIZE  4096
-#define PYCONNECT_MAX_TCP_SESSION  50
-#define PYCONNECT_COMMPORT_RANGE   100  // this basically limits number of pythonised objects running on same machine/interface
+#define PYCONNECT_UDP_BUFFER_SIZE 2048
+#define PYCONNECT_TCP_BUFFER_SIZE 4096
+#define PYCONNECT_MAX_TCP_SESSION 50
+#define PYCONNECT_COMMPORT_RANGE                                               \
+  100 // this basically limits number of pythonised objects running on same
+      // machine/interface
 
 #ifdef HAS_OWN_MAIN_LOOP
-#define PYCONNECT_NETCOMM_INIT  \
-  PyConnectNetComm::instance()->init( this->getMP(), this )
+#define PYCONNECT_NETCOMM_INIT                                                 \
+  PyConnectNetComm::instance()->init(this->getMP(), this)
 
-#define PYCONNECT_NETCOMM_DECLARE \
-  virtual void setFD( const SOCKET_T & fd );  \
-  virtual void clearFD( const SOCKET_T & fd )
+#define PYCONNECT_NETCOMM_DECLARE                                              \
+  virtual void setFD(const SOCKET_T &fd);                                      \
+  virtual void clearFD(const SOCKET_T &fd)
 
-#define PYCONNECT_NETCOMM_PROCESS_DATA( READYFDSET ) \
-  PyConnectNetComm::instance()->processIncomingData( READYFDSET )
+#define PYCONNECT_NETCOMM_PROCESS_DATA(READYFDSET)                             \
+  PyConnectNetComm::instance()->processIncomingData(READYFDSET)
 
 #else
-#define PYCONNECT_NETCOMM_INIT  \
-  PyConnectNetComm::instance()->init( this->getMP() )
+#define PYCONNECT_NETCOMM_INIT PyConnectNetComm::instance()->init(this->getMP())
 
 #define PYCONNECT_NETCOMM_DECLARE
 
-#define PYCONNECT_NETCOMM_PROCESS_DATA \
+#define PYCONNECT_NETCOMM_PROCESS_DATA                                         \
   PyConnectNetComm::instance()->continuousProcessing()
 
 #endif
 
-#define PYCONNECT_NETCOMM_FINI  \
-  PyConnectNetComm::instance()->fini()
+#define PYCONNECT_NETCOMM_FINI PyConnectNetComm::instance()->fini()
 
 #ifndef PYTHON_SERVER
-#define PYCONNECT_NETCOMM_ENABLE_NET \
+#define PYCONNECT_NETCOMM_ENABLE_NET                                           \
   PyConnectNetComm::instance()->enableNetComm()
 
-#define PYCONNECT_NETCOMM_DISABLE_NET \
+#define PYCONNECT_NETCOMM_DISABLE_NET                                          \
   PyConnectNetComm::instance()->disableNetComm()
 
 #ifdef WIN32
-#define PYCONNECT_NETCOMM_ENABLE_IPC \
-  static_assert( 0, "PYCONNECT_NETCOMM_ENABLE_IPC is not supported under Windows." )
-#define PYCONNECT_NETCOMM_DISABLE_IPC \
-  static_assert( 0,"PYCONNECT_NETCOMM_DISABLE_IPC is not supported under Windows." )
+#define PYCONNECT_NETCOMM_ENABLE_IPC                                           \
+  static_assert(                                                               \
+      0, "PYCONNECT_NETCOMM_ENABLE_IPC is not supported under Windows.")
+#define PYCONNECT_NETCOMM_DISABLE_IPC                                          \
+  static_assert(                                                               \
+      0, "PYCONNECT_NETCOMM_DISABLE_IPC is not supported under Windows.")
 #else
-#define PYCONNECT_NETCOMM_ENABLE_IPC \
+#define PYCONNECT_NETCOMM_ENABLE_IPC                                           \
   PyConnectNetComm::instance()->enableIPCComm()
-#define PYCONNECT_NETCOMM_DISABLE_IPC \
+#define PYCONNECT_NETCOMM_DISABLE_IPC                                          \
   PyConnectNetComm::instance()->disableIPCComm()
 #endif
 #endif // HAS_OWN_MAIN_LOOP
@@ -118,104 +120,101 @@ namespace pyconnect {
 
 class FDSetOwner {
 public:
-  virtual void setFD( const SOCKET_T & fd ) = 0;
-  virtual void clearFD( const SOCKET_T & fd ) = 0;
+  virtual void setFD(const SOCKET_T &fd) = 0;
+  virtual void clearFD(const SOCKET_T &fd) = 0;
   virtual ~FDSetOwner() {}
 };
 
-class PyConnectNetComm : public ObjectComm
-{
+class PyConnectNetComm : public ObjectComm {
 public:
-  static PyConnectNetComm * instance();
+  static PyConnectNetComm *instance();
   virtual ~PyConnectNetComm();
 
-  void processIncomingData( fd_set * readyFDSet );
-  void init( MessageProcessor * pMP, FDSetOwner * fdOwner = NULL );
+  void processIncomingData(fd_set *readyFDSet);
+  void init(MessageProcessor *pMP, FDSetOwner *fdOwner = NULL);
   void continuousProcessing();
 
-  void dataPacketSender( const unsigned char * data, int size, bool broadcast = false );
-  CommObjectStat createTalker( char * host, int port = 0 );
-  CommObjectStat setBroadcastAddr( char * addr );
+  void dataPacketSender(const unsigned char *data, int size,
+                        bool broadcast = false);
+  CommObjectStat createTalker(char *host, int port = 0);
+  CommObjectStat setBroadcastAddr(char *addr);
 
   void fini();
 
   void enableNetComm();
-  void disableNetComm( bool onExit = false );
+  void disableNetComm(bool onExit = false);
 #ifndef WIN32
   void enableIPCComm();
-  void disableIPCComm( bool onExit = false );
-#endif //!WIN32
+  void disableIPCComm(bool onExit = false);
+#endif //! WIN32
 
 private:
-  enum FDDomain {
-    UNKNOWN,
-    NETWORK,
-    LOCALIPC
-  };
+  enum FDDomain { UNKNOWN, NETWORK, LOCALIPC };
 
   struct SocketDataBufferInfo {
-    unsigned char * bufferedData;
+    unsigned char *bufferedData;
     int expectedDataLength;
     int bufferedDataLength;
   };
-  
+
   typedef struct sClientFD {
     SOCKET_T fd;
     FDDomain domain;
     struct sockaddr_in cAddr; // client address, NETWORK only
-    int localProcID; // server process id, IPC only
+    int localProcID;          // server process id, IPC only
     struct SocketDataBufferInfo dataInfo;
-    sClientFD * pNext;
+    sClientFD *pNext;
   } ClientFD;
 
   PyConnectNetComm();
   bool initUDPListener();
   bool initTCPListener();
-  
-  void clientDataSend( const unsigned char * data, int size );
-  void netBroadcastSend( const unsigned char * data, int size );
-  void localBroadcastSend( const unsigned char * data, int size );
 
-  void processUDPInput( unsigned char * recBuffer, int recBytes, struct sockaddr_in & cAddr );
-  bool createTCPTalker( struct sockaddr_in & cAddr );
+  void clientDataSend(const unsigned char *data, int size);
+  void netBroadcastSend(const unsigned char *data, int size);
+  void localBroadcastSend(const unsigned char *data, int size);
+
+  void processUDPInput(unsigned char *recBuffer, int recBytes,
+                       struct sockaddr_in &cAddr);
+  bool createTCPTalker(struct sockaddr_in &cAddr);
 #ifndef WIN32
-  SOCKET_T findOrCreateIPCTalker( int procID );
-  SOCKET_T findFdFromClientListByProcID( int procID );
+  SOCKET_T findOrCreateIPCTalker(int procID);
+  SOCKET_T findFdFromClientListByProcID(int procID);
   void consolidateIPCSockets();
 #endif // !WIN32
-  void addFdToClientList( const SOCKET_T & fd, FDDomain domain,
-                         struct sockaddr_in * cAddr, int procID = 0 );
-  void destroyCurrentClient( SOCKET_T fd );
-  void destroyCurrentClient( ClientFD * & FDPtr, ClientFD * & prevFDPtr );
+  void addFdToClientList(const SOCKET_T &fd, FDDomain domain,
+                         struct sockaddr_in *cAddr, int procID = 0);
+  void destroyCurrentClient(SOCKET_T fd);
+  void destroyCurrentClient(ClientFD *&FDPtr, ClientFD *&prevFDPtr);
   void updateMPID();
-  bool getIDFromIP( int & addr );
+  bool getIDFromIP(int &addr);
 
-  static PyConnectNetComm *  s_pPyConnectNetComm;
+  static PyConnectNetComm *s_pPyConnectNetComm;
 
-  MessageProcessor * pMP_;
+  MessageProcessor *pMP_;
 
-  struct sockaddr_in  sAddr_;
-  struct sockaddr_in  bcAddr_;
+  struct sockaddr_in sAddr_;
+  struct sockaddr_in bcAddr_;
 
-  SOCKET_T  udpSocket_;
-  SOCKET_T  tcpSocket_;
-  SOCKET_T  domainSocket_;
+  SOCKET_T udpSocket_;
+  SOCKET_T tcpSocket_;
+  SOCKET_T domainSocket_;
 
-  unsigned char * dgramBuffer_;
-  unsigned char * clientDataBuffer_;
-  unsigned char * dispatchDataBuffer_;
+  unsigned char *dgramBuffer_;
+  unsigned char *clientDataBuffer_;
+  unsigned char *dispatchDataBuffer_;
 
-  ClientFD * clientFDList_;
+  ClientFD *clientFDList_;
 
   // only used in own main loop
-  FDSetOwner * pFDOwner_;
-  int     maxFD_;
-  fd_set  masterFDSet_;  
+  FDSetOwner *pFDOwner_;
+  int maxFD_;
+  fd_set masterFDSet_;
 
-  bool  netCommEnabled_;
-  bool  IPCCommEnabled_;
-  bool  invalidUDPSock_;
-  bool  keepRunning_;
+  bool netCommEnabled_;
+  bool IPCCommEnabled_;
+  bool invalidUDPSock_;
+  bool keepRunning_;
   unsigned short portInUse_;
 #ifdef USE_MULTICAST
   struct ip_mreq multiCastReq_;
@@ -225,4 +224,4 @@ private:
 };
 
 } // namespace pyconnect
-#endif  // PyConnectNetComm_h_DEFINED
+#endif // PyConnectNetComm_h_DEFINED

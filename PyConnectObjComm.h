@@ -1,6 +1,6 @@
 /*
  *  PyConnectObjComm.h
- *  
+ *
  *  Copyright 2006, 2007 Xun Wang.
  *  This file is part of PyConnect.
  *
@@ -23,32 +23,32 @@
 
 #ifdef OPENR_OBJECT
 #include <OPENR/OObject.h>
-#include <OPENR/OSubject.h>
 #include <OPENR/OObserver.h>
+#include <OPENR/OSubject.h>
 #endif
 
 #ifdef WIN32
 #include <winsock2.h>
-#define SOCKET_T  SOCKET
+#define SOCKET_T SOCKET
 #else
-#define SOCKET_T  int
+#define SOCKET_T int
 #define INVALID_SOCKET -1
 #include <netinet/in.h>
 #endif
 
-#include <vector>
-#include <map>
 #include "PyConnectCommon.h"
+#include <map>
+#include <vector>
 
 namespace pyconnect {
 
 class ObjectComm;
 
 typedef enum {
-  NOT_SUPPORTED     = 1,
+  NOT_SUPPORTED = 1,
   INVALID_ADDR_PORT = 2,
-  COMM_FAILED       = 4,
-  COMM_SUCCESS      = 8
+  COMM_FAILED = 4,
+  COMM_SUCCESS = 8
 } CommObjectStat;
 
 typedef enum {
@@ -57,53 +57,60 @@ typedef enum {
   MESG_TO_SHUTDOWN = 2
 } MesgProcessResult;
 
-class MessageProcessor
-{
+class MessageProcessor {
 public:
   MessageProcessor() {}
   virtual ~MessageProcessor();
-  virtual MesgProcessResult processInput( unsigned char * recData, int bytesReceived, struct sockaddr_in & cAddr, bool skipdecrypt = false ) = 0;
-  void addCommObject( ObjectComm * pCommObj );
-  virtual void updateMPID( int id ) {}
+  virtual MesgProcessResult processInput(unsigned char *recData,
+                                         int bytesReceived,
+                                         struct sockaddr_in &cAddr,
+                                         bool skipdecrypt = false) = 0;
+  void addCommObject(ObjectComm *pCommObj);
+  virtual void updateMPID(int id) {}
 
 protected:
   typedef std::vector<ObjectComm *> CommObjectList;
-  CommObjectList  commObjList_;
+  CommObjectList commObjList_;
 
-  void dispatchMessage( const unsigned char * data, int size, bool broadcast = false );
-  CommObjectStat connectTo( char * host, int port = 0 );
-  CommObjectStat setBroadcastAddr( char * addr );
+  void dispatchMessage(const unsigned char *data, int size,
+                       bool broadcast = false);
+  CommObjectStat connectTo(char *host, int port = 0);
+  CommObjectStat setBroadcastAddr(char *addr);
 };
 
-class ObjectComm
-{
+class ObjectComm {
 public:
   ObjectComm();
   virtual ~ObjectComm() {}
-  virtual void dataPacketSender( const unsigned char * data, int size, bool broadcast = false ) = 0;
-  virtual CommObjectStat setBroadcastAddr( char * addr ) { return NOT_SUPPORTED; }
-  virtual CommObjectStat createTalker( char * host, int port = 0 ) { return NOT_SUPPORTED; }
+  virtual void dataPacketSender(const unsigned char *data, int size,
+                                bool broadcast = false) = 0;
+  virtual CommObjectStat setBroadcastAddr(char *addr) { return NOT_SUPPORTED; }
+  virtual CommObjectStat createTalker(char *host, int port = 0) {
+    return NOT_SUPPORTED;
+  }
   virtual void fini() {}
 
 protected:
-  MessageProcessor * pMP_;
+  MessageProcessor *pMP_;
 
-  void setMP( MessageProcessor * pMP ) { pMP_ = pMP; }
-  int verifyNegotiationMsg( const unsigned char * recBuffer, int receivedBytes );
-  SOCKET_T findOrAddCommChanByMsgID( const unsigned char * data );
+  void setMP(MessageProcessor *pMP) { pMP_ = pMP; }
+  int verifyNegotiationMsg(const unsigned char *recBuffer, int receivedBytes);
+  SOCKET_T findOrAddCommChanByMsgID(const unsigned char *data);
   SOCKET_T getLastUsedCommChannel();
   void resetLastUsedCommChannel() { activeCommChannel_ = INVALID_SOCKET; }
-  void setLastUsedCommChannel( SOCKET_T index );
+  void setLastUsedCommChannel(SOCKET_T index);
   void resetObjCommChanMap();
-  void objCommChannelShutdown( SOCKET_T chanID, bool notifyMesgProc = false );
-  
+  void objCommChannelShutdown(SOCKET_T chanID, bool notifyMesgProc = false);
+
 private:
-  typedef std::map<int, SOCKET_T>  ObjectCommChannelMap; // < remote host object (module or server) ID , channel index/socket >
+  typedef std::map<int, SOCKET_T>
+      ObjectCommChannelMap; // < remote host object (module or server) ID ,
+                            // channel index/socket >
 
   ObjectCommChannelMap objCommMap_;
-  SOCKET_T  activeCommChannel_;
+  SOCKET_T activeCommChannel_;
 };
 
 } // namespace pyconnect
 
-#endif  // PyConnectObjComm_h_DEFINED
+#endif // PyConnectObjComm_h_DEFINED

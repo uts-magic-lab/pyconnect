@@ -23,99 +23,89 @@
 
 #ifdef WIN_32
 #define FACTOR 0x19db1ded53e8000
-int gettimeofday( struct timeval * tp,void * tz )
-{
+int gettimeofday(struct timeval *tp, void *tz) {
   FILETIME f;
   ULARGE_INTEGER ifreq;
-  LONGLONG res; 
+  LONGLONG res;
   GetSystemTimeAsFileTime(&f);
   ifreq.HighPart = f.dwHighDateTime;
   ifreq.LowPart = f.dwLowDateTime;
 
   res = ifreq.QuadPart - FACTOR;
-  tp->tv_sec = (long)((LONGLONG)res/10000000);
-  tp->tv_usec = (long)((LONGLONG)res% 10000000000); // Micro Seonds
+  tp->tv_sec = (long)((LONGLONG)res / 10000000);
+  tp->tv_usec = (long)((LONGLONG)res % 10000000000); // Micro Seonds
 
   return 0;
 }
 #else
-#define max( a, b ) (a) > (b) ? (a) : (b)
+#define max(a, b) (a) > (b) ? (a) : (b)
 #endif
 
-PYCONNECT_LOGGING_DECLARE( "testing.log" );
+PYCONNECT_LOGGING_DECLARE("testing.log");
 
-int main( int argc, char ** argv )
-{
+int main(int argc, char **argv) {
   PYCONNECT_LOGGING_INIT;
   using testing::TestSample2;
   TestSample2 tp;
 
   tp.processContinously();
-  INFO_MSG( "quiting the timer program..." );
+  INFO_MSG("quiting the timer program...");
   PYCONNECT_LOGGING_FINI;
 }
 
 namespace testing {
 
-TestSample2::TestSample2() :
-  timeout( 500 ),
-  timerTriggerNo( 0 ),
-  breakLoop_( false ),
-  maxFD_( 0 ),
-  timerEnabled_( false )
-{
+TestSample2::TestSample2()
+    : timeout(500), timerTriggerNo(0), breakLoop_(false), maxFD_(0),
+      timerEnabled_(false) {
   EXPORT_PYCONNECT_MODULE;
-  EXPORT_PYCONNECT_RW_ATTRIBUTE( timeout );
-  EXPORT_PYCONNECT_RO_ATTRIBUTE( timerTriggerNo );
+  EXPORT_PYCONNECT_RW_ATTRIBUTE(timeout);
+  EXPORT_PYCONNECT_RO_ATTRIBUTE(timerTriggerNo);
 
-  EXPORT_PYCONNECT_METHOD( enableTimer );
-  EXPORT_PYCONNECT_METHOD( disableTimer );
-  EXPORT_PYCONNECT_METHOD( quit );
+  EXPORT_PYCONNECT_METHOD(enableTimer);
+  EXPORT_PYCONNECT_METHOD(disableTimer);
+  EXPORT_PYCONNECT_METHOD(quit);
 
-  FD_ZERO( &masterFDSet_ );
+  FD_ZERO(&masterFDSet_);
   PYCONNECT_NETCOMM_INIT;
   PYCONNECT_NETCOMM_ENABLE_NET;
-  PYCONNECT_MODULE_INIT;  
+  PYCONNECT_MODULE_INIT;
 }
 
-TestSample2::~TestSample2()
-{
-  PYCONNECT_MODULE_FINI;  
+TestSample2::~TestSample2() {
+  PYCONNECT_MODULE_FINI;
   PYCONNECT_NETCOMM_FINI;
 }
 
-bool TestSample2::enableTimer( int period )
-{
+bool TestSample2::enableTimer(int period) {
   if (period < 100) {
-    ERROR_MSG( "TestSample2::enableTimer: only support timeout"
-      " period > 100 milliseconds" );
+    ERROR_MSG("TestSample2::enableTimer: only support timeout"
+              " period > 100 milliseconds");
     return false;
   }
   if (timerEnabled_) {
-    WARNING_MSG( "TestSample2::enableTimer: timer already enabled." );
+    WARNING_MSG("TestSample2::enableTimer: timer already enabled.");
     return true;
   }
-  printf( "TestSample2 timer enabled.\n" );
-  gettimeofday( &nextTime_, NULL );
-  TestSample2::addTimeInMS( nextTime_, period );
+  printf("TestSample2 timer enabled.\n");
+  gettimeofday(&nextTime_, NULL);
+  TestSample2::addTimeInMS(nextTime_, period);
   timeout = period;
   timerEnabled_ = true;
-  PYCONNECT_ATTRIBUTE_UPDATE( timeout );
+  PYCONNECT_ATTRIBUTE_UPDATE(timeout);
   return true;
 }
 
-void TestSample2::disableTimer()
-{
+void TestSample2::disableTimer() {
   if (!timerEnabled_) {
     return;
   }
   timerEnabled_ = false;
   timerTriggerNo = 0; // reset
-  printf( "TestSample2 timer disabled.\n" );
+  printf("TestSample2 timer disabled.\n");
 }
 
-void TestSample2::processContinously()
-{
+void TestSample2::processContinously() {
   fd_set readyFDSet;
 
   while (!breakLoop_) {
@@ -123,33 +113,31 @@ void TestSample2::processContinously()
     timeout.tv_sec = 0;
     timeout.tv_usec = 100000; // 100ms
 
-    FD_ZERO( &readyFDSet );
-    memcpy( &readyFDSet, &masterFDSet_, sizeof( masterFDSet_ ) );
+    FD_ZERO(&readyFDSet);
+    memcpy(&readyFDSet, &masterFDSet_, sizeof(masterFDSet_));
     int maxFD = maxFD_;
-    select( maxFD+1, &readyFDSet, NULL, NULL, &timeout ); // non-blocking select
+    select(maxFD + 1, &readyFDSet, NULL, NULL, &timeout); // non-blocking select
     // get current timestamp
-    gettimeofday( &timeStamp, NULL );
+    gettimeofday(&timeStamp, NULL);
 
     // check timer
-    this->checkTimeout( timeStamp );
+    this->checkTimeout(timeStamp);
 
-    PYCONNECT_NETCOMM_PROCESS_DATA( &readyFDSet );
+    PYCONNECT_NETCOMM_PROCESS_DATA(&readyFDSet);
   }
 }
 
-void TestSample2::checkTimeout( timeval & curTime )
-{
+void TestSample2::checkTimeout(timeval &curTime) {
   if (!timerEnabled_)
     return;
-  if (TestSample2::compareTimeInMS( nextTime_, curTime ) >= 0) {
+  if (TestSample2::compareTimeInMS(nextTime_, curTime) >= 0) {
     timerTriggerNo++;
-    PYCONNECT_ATTRIBUTE_UPDATE( timerTriggerNo );
-    TestSample2::addTimeInMS( nextTime_, timeout );
+    PYCONNECT_ATTRIBUTE_UPDATE(timerTriggerNo);
+    TestSample2::addTimeInMS(nextTime_, timeout);
   }
 }
 
-int TestSample2::compareTimeInMS( struct timeval & timeA, struct timeval & timeB )
-{
+int TestSample2::compareTimeInMS(struct timeval &timeA, struct timeval &timeB) {
   // a > b: -1; a = b: 0; a < b: 1
   if (timeA.tv_sec > timeB.tv_sec)
     return -1;
@@ -165,30 +153,26 @@ int TestSample2::compareTimeInMS( struct timeval & timeA, struct timeval & timeB
   }
 }
 
-void TestSample2::addTimeInMS( struct timeval & time, long msec )
-{
+void TestSample2::addTimeInMS(struct timeval &time, long msec) {
   time.tv_sec += msec / 1000;
   time.tv_usec += (msec % 1000) * 1000;
 }
 
-
-void TestSample2::setFD( const SOCKET_T & fd )
-{
-  FD_SET( fd, &masterFDSet_ );
+void TestSample2::setFD(const SOCKET_T &fd) {
+  FD_SET(fd, &masterFDSet_);
 #ifdef WIN_32
   maxFD_++; // not really used
 #else
-  maxFD_ = max( fd, maxFD_ );
+  maxFD_ = max(fd, maxFD_);
 #endif
 }
 
-void TestSample2::clearFD( const SOCKET_T & fd )
-{
-  FD_CLR( fd, &masterFDSet_ );
+void TestSample2::clearFD(const SOCKET_T &fd) {
+  FD_CLR(fd, &masterFDSet_);
 #ifdef WIN_32
   maxFD_--; // not really used
 #else
-  maxFD_ = max( fd, maxFD_ );
+  maxFD_ = max(fd, maxFD_);
 #endif
 }
 

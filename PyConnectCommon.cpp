@@ -18,18 +18,18 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <string.h>
 #include "PyConnectCommon.h"
+#include <string.h>
 
 #ifdef OPENR_OBJECT
 #include <OPENR/OObject.h>
 #endif
 
-#include <openssl/crypto.h>
 #include <openssl/bio.h>
-#include <openssl/evp.h>
 #include <openssl/buffer.h>
+#include <openssl/crypto.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
 
 #ifndef OPENR_OBJECT
 #ifdef WIN32
@@ -39,34 +39,37 @@
 #endif
 #endif
 
-#define ENCRYPTION_KEY_LENGTH  32
-#define PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE       10240
+#define ENCRYPTION_KEY_LENGTH 32
+#define PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE 10240
 
 #if PY_MAJOR_VERSION >= 3
-  #define PyInt_FromLong PyLong_FromLong
-  #define PyInt_AsLong PyLong_AsLong
-  #define PyInt_Check PyLong_Check
+#define PyInt_FromLong PyLong_FromLong
+#define PyInt_AsLong PyLong_AsLong
+#define PyInt_Check PyLong_Check
 #endif
 
-/* Use the following python code to generate random 32 char key and encode into base64
+/* Use the following python code to generate random 32 char key and encode into
+ * base64
  *
  * import base64
  * import string
  * import random
  *
- * def id_generator(size=6, chars=string.ascii_uppercase + string.ascii_lowercase + string.digits):
- *     return ''.join(random.choice(chars) for _ in range(size))
+ * def id_generator(size=6, chars=string.ascii_uppercase +
+ * string.ascii_lowercase + string.digits): return ''.join(random.choice(chars)
+ * for _ in range(size))
  *
  * key = id_generator(32)
  * base64.b64encode( key )
  */
 namespace pyconnect {
 
-static const unsigned char encrypt_key_text[] = "Mk80Z2J4TXJ1N0x4Q3RsQXhQNlB0d1NNWWNjd3Nzdjk=";
+static const unsigned char encrypt_key_text[] =
+    "Mk80Z2J4TXJ1N0x4Q3RsQXhQNlB0d1NNWWNjd3Nzdjk=";
 static const unsigned char encrypt_iv[] = "HrWOZK1H"; // must be 8 bytes
-static unsigned char * encrypt_key;
-static unsigned char * encryptbuffer = NULL;
-static unsigned char * decryptbuffer = NULL;
+static unsigned char *encrypt_key;
+static unsigned char *encryptbuffer = NULL;
+static unsigned char *decryptbuffer = NULL;
 
 #ifndef OPENR_OBJECT
 #ifdef WIN32
@@ -81,160 +84,159 @@ static pthread_mutexattr_t t_mta;
 
 // helper functions
 /* NOTE: encodeBase64 and decodeBase64 are not thread safe!!!! */
-unsigned char * decodeBase64( char * input, size_t * outLen )
-{
-  BIO * bmem, * b64;
+unsigned char *decodeBase64(char *input, size_t *outLen) {
+  BIO *bmem, *b64;
 
-  int inLen = (int)strlen( input );
-  int maxOutLen=(inLen * 6 + 7) / 8;
-  unsigned char * buf = (unsigned char *)malloc( maxOutLen );
+  int inLen = (int)strlen(input);
+  int maxOutLen = (inLen * 6 + 7) / 8;
+  unsigned char *buf = (unsigned char *)malloc(maxOutLen);
   if (buf) {
-    memset( buf, 0, maxOutLen );
+    memset(buf, 0, maxOutLen);
 
-    b64 = BIO_new( BIO_f_base64() );
+    b64 = BIO_new(BIO_f_base64());
     if (b64) {
-      BIO_set_flags( b64, BIO_FLAGS_BASE64_NO_NL );
-      bmem = BIO_new_mem_buf( (char *) input, inLen );
-      b64 = BIO_push( b64, bmem );
-      *outLen = BIO_read( b64, buf, maxOutLen );
-      BIO_free_all( b64 );
+      BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+      bmem = BIO_new_mem_buf((char *)input, inLen);
+      b64 = BIO_push(b64, bmem);
+      *outLen = BIO_read(b64, buf, maxOutLen);
+      BIO_free_all(b64);
     }
   }
   return buf;
 }
 
-char * encodeBase64( const unsigned char * input, size_t length )
-{
-  BIO * bmem, * b64;
-  BUF_MEM * bptr;
-  char * buf = NULL;
+char *encodeBase64(const unsigned char *input, size_t length) {
+  BIO *bmem, *b64;
+  BUF_MEM *bptr;
+  char *buf = NULL;
 
-  b64 = BIO_new( BIO_f_base64() );
+  b64 = BIO_new(BIO_f_base64());
   if (b64) {
-    BIO_set_flags( b64, BIO_FLAGS_BASE64_NO_NL );
-    bmem = BIO_new( BIO_s_mem() );
-    b64 = BIO_push( b64, bmem );
-    BIO_write( b64, input, (int)length );
-    BIO_flush( b64 );
-    BIO_get_mem_ptr( b64, &bptr );
+    BIO_set_flags(b64, BIO_FLAGS_BASE64_NO_NL);
+    bmem = BIO_new(BIO_s_mem());
+    b64 = BIO_push(b64, bmem);
+    BIO_write(b64, input, (int)length);
+    BIO_flush(b64);
+    BIO_get_mem_ptr(b64, &bptr);
 
-    buf = (char *)malloc( bptr->length + 1);
-    memcpy( buf, bptr->data, bptr->length );
+    buf = (char *)malloc(bptr->length + 1);
+    memcpy(buf, bptr->data, bptr->length);
     buf[bptr->length] = 0;
-    BIO_free_all( b64 );
+    BIO_free_all(b64);
   }
   return buf;
 }
 
-void endecryptInit()
-{
-  INFO_MSG( "Communication encryption enabled.\n" );
+void endecryptInit() {
+  INFO_MSG("Communication encryption enabled.\n");
 
 #ifndef OPENR_OBJECT
 #ifdef WIN32
-  InitializeCriticalSection( &t_criticalSection_1_ );
-  InitializeCriticalSection( &t_criticalSection_2_ );
+  InitializeCriticalSection(&t_criticalSection_1_);
+  InitializeCriticalSection(&t_criticalSection_2_);
 #else
-  pthread_mutexattr_init( &t_mta );
-  pthread_mutexattr_settype( &t_mta, PTHREAD_MUTEX_RECURSIVE );
-  pthread_mutex_init( &t_mutex_1, &t_mta );
-  pthread_mutex_init( &t_mutex_2, &t_mta );
+  pthread_mutexattr_init(&t_mta);
+  pthread_mutexattr_settype(&t_mta, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(&t_mutex_1, &t_mta);
+  pthread_mutex_init(&t_mutex_2, &t_mta);
 #endif
 #endif
 
   size_t keyLen = 0;
   if (encrypt_key) {
-    free( encrypt_key );
+    free(encrypt_key);
   }
-  encrypt_key = decodeBase64( (char *)encrypt_key_text, &keyLen );
+  encrypt_key = decodeBase64((char *)encrypt_key_text, &keyLen);
 
   if (keyLen != ENCRYPTION_KEY_LENGTH) {
-    ERROR_MSG( "Encryption key decode error.\n" );
+    ERROR_MSG("Encryption key decode error.\n");
   }
 
   if (!encryptbuffer) {
-    encryptbuffer = (unsigned char *)malloc( PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE );
+    encryptbuffer =
+        (unsigned char *)malloc(PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE);
   }
   if (!decryptbuffer) {
-    decryptbuffer = (unsigned char *)malloc( PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE );
+    decryptbuffer =
+        (unsigned char *)malloc(PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE);
   }
 }
 
-void endecryptFini()
-{
+void endecryptFini() {
   if (encryptbuffer) {
-    free( encryptbuffer );
+    free(encryptbuffer);
     encryptbuffer = NULL;
   }
   if (decryptbuffer) {
-    free( decryptbuffer );
+    free(decryptbuffer);
     decryptbuffer = NULL;
   }
   if (encrypt_key) {
-    free( encrypt_key );
+    free(encrypt_key);
     encrypt_key = NULL;
   }
 #ifndef OPENR_OBJECT
 #ifdef WIN32
-  DeleteCriticalSection( &t_criticalSection_1_ );
-  DeleteCriticalSection( &t_criticalSection_2_ );
+  DeleteCriticalSection(&t_criticalSection_1_);
+  DeleteCriticalSection(&t_criticalSection_2_);
 #else
-  pthread_mutex_destroy( &t_mutex_1 );
-  pthread_mutex_destroy( &t_mutex_2 );
-  pthread_mutexattr_destroy( &t_mta );
+  pthread_mutex_destroy(&t_mutex_1);
+  pthread_mutex_destroy(&t_mutex_2);
+  pthread_mutexattr_destroy(&t_mta);
 #endif
 #endif
 }
 
-int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned char ** decryptedMesg, int * decryptedMesgLength )
-{
+int decryptMessage(const unsigned char *origMesg, int origMesgLength,
+                   unsigned char **decryptedMesg, int *decryptedMesgLength) {
 #ifndef OPENR_OBJECT
 #ifdef WIN32
-  EnterCriticalSection( &t_criticalSection_1_ );
+  EnterCriticalSection(&t_criticalSection_1_);
 #else
-  pthread_mutex_lock( &t_mutex_1 );
+  pthread_mutex_lock(&t_mutex_1);
 #endif
 #endif
   int oLen = 0, tLen = 0;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
   EVP_CIPHER_CTX ectx;
-  EVP_CIPHER_CTX * ctx = &ectx;
+  EVP_CIPHER_CTX *ctx = &ectx;
 #else
-  EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
 #endif
-  EVP_CIPHER_CTX_init( ctx );
-  EVP_DecryptInit( ctx, EVP_bf_cbc(), encrypt_key, encrypt_iv );
+  EVP_CIPHER_CTX_init(ctx);
+  EVP_DecryptInit(ctx, EVP_bf_cbc(), encrypt_key, encrypt_iv);
 
-  memset( decryptbuffer, 0, PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE );
+  memset(decryptbuffer, 0, PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE);
 
-  if (EVP_DecryptUpdate( ctx, decryptbuffer, &oLen, origMesg, origMesgLength ) != 1) {
-    //ERROR_MSG( "EVP_DecryptUpdate failed.\n" );
+  if (EVP_DecryptUpdate(ctx, decryptbuffer, &oLen, origMesg, origMesgLength) !=
+      1) {
+    // ERROR_MSG( "EVP_DecryptUpdate failed.\n" );
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-    EVP_CIPHER_CTX_cleanup( ctx );
+    EVP_CIPHER_CTX_cleanup(ctx);
 #else
-    EVP_CIPHER_CTX_free( ctx );
+    EVP_CIPHER_CTX_free(ctx);
 #endif
 #ifndef OPENR_OBJECT
 #ifdef WIN32
-    LeaveCriticalSection( &t_criticalSection_1_ );
+    LeaveCriticalSection(&t_criticalSection_1_);
 #else
-    pthread_mutex_unlock( &t_mutex_1 );
+    pthread_mutex_unlock(&t_mutex_1);
 #endif
 #endif
     return 0;
   }
-  if (EVP_DecryptFinal( ctx, decryptbuffer+oLen, &tLen ) != 1) {
-    //ERROR_MSG( "EVP_DecryptFinal failed.\n" );
+  if (EVP_DecryptFinal(ctx, decryptbuffer + oLen, &tLen) != 1) {
+    // ERROR_MSG( "EVP_DecryptFinal failed.\n" );
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-    EVP_CIPHER_CTX_cleanup( ctx );
+    EVP_CIPHER_CTX_cleanup(ctx);
 #else
-    EVP_CIPHER_CTX_free( ctx );
+    EVP_CIPHER_CTX_free(ctx);
 #endif
 #ifndef OPENR_OBJECT
 #ifdef WIN32
-    LeaveCriticalSection( &t_criticalSection_1_ );
+    LeaveCriticalSection(&t_criticalSection_1_);
 #else
-    pthread_mutex_unlock( &t_mutex_1 );
+    pthread_mutex_unlock(&t_mutex_1);
 #endif
 #endif
     return 0;
@@ -243,72 +245,73 @@ int decryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
   *decryptedMesgLength = oLen + tLen;
   *decryptedMesg = decryptbuffer;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-  EVP_CIPHER_CTX_cleanup( ctx );
+  EVP_CIPHER_CTX_cleanup(ctx);
 #else
-  EVP_CIPHER_CTX_free( ctx );
+  EVP_CIPHER_CTX_free(ctx);
 #endif
 
 #ifndef OPENR_OBJECT
 #ifdef WIN32
-  LeaveCriticalSection( &t_criticalSection_1_ );
+  LeaveCriticalSection(&t_criticalSection_1_);
 #else
-  pthread_mutex_unlock( &t_mutex_1 );
+  pthread_mutex_unlock(&t_mutex_1);
 #endif
 #endif
   return 1;
 }
 
-int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned char ** encryptedMesg, int * encryptedMesgLength )
-{
+int encryptMessage(const unsigned char *origMesg, int origMesgLength,
+                   unsigned char **encryptedMesg, int *encryptedMesgLength) {
 #ifndef OPENR_OBJECT
 #ifdef WIN32
-  EnterCriticalSection( &t_criticalSection_2_ );
+  EnterCriticalSection(&t_criticalSection_2_);
 #else
-  pthread_mutex_lock( &t_mutex_2 );
+  pthread_mutex_lock(&t_mutex_2);
 #endif
 #endif
   int oLen = 0, tLen = 0;
 
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
   EVP_CIPHER_CTX ectx;
-  EVP_CIPHER_CTX * ctx = &ectx;
+  EVP_CIPHER_CTX *ctx = &ectx;
 #else
-  EVP_CIPHER_CTX * ctx = EVP_CIPHER_CTX_new();
+  EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
 #endif
-  EVP_CIPHER_CTX_init( ctx );
-  EVP_EncryptInit( ctx, EVP_bf_cbc(), encrypt_key, encrypt_iv );
+  EVP_CIPHER_CTX_init(ctx);
+  EVP_EncryptInit(ctx, EVP_bf_cbc(), encrypt_key, encrypt_iv);
 
-  memset( encryptbuffer, 0, PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE );
+  memset(encryptbuffer, 0, PYCONNECT_MSG_ENDECRYPT_BUFFER_SIZE);
 
-  if (EVP_EncryptUpdate( ctx, encryptbuffer, &oLen, origMesg, origMesgLength ) != 1) {
-    //ERROR_MSG( "EVP_EncryptUpdate failed.\n" );
+  if (EVP_EncryptUpdate(ctx, encryptbuffer, &oLen, origMesg, origMesgLength) !=
+      1) {
+    // ERROR_MSG( "EVP_EncryptUpdate failed.\n" );
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-    EVP_CIPHER_CTX_cleanup( ctx );
+    EVP_CIPHER_CTX_cleanup(ctx);
 #else
-    EVP_CIPHER_CTX_free( ctx );
+    EVP_CIPHER_CTX_free(ctx);
 #endif
 #ifndef OPENR_OBJECT
 #ifdef WIN32
-    LeaveCriticalSection( &t_criticalSection_2_ );
+    LeaveCriticalSection(&t_criticalSection_2_);
 #else
-    pthread_mutex_unlock( &t_mutex_2 );
+    pthread_mutex_unlock(&t_mutex_2);
 #endif
 #endif
     return 0;
   }
 
-  if (EVP_EncryptFinal( ctx, encryptbuffer+oLen, &tLen ) != 1) {
-    //ERROR_MSG( "EVP_EncryptFinal failed.\n" );
+  if (EVP_EncryptFinal(ctx, encryptbuffer + oLen, &tLen) != 1) {
+    // ERROR_MSG( "EVP_EncryptFinal failed.\n" );
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-    EVP_CIPHER_CTX_cleanup( ctx );
+    EVP_CIPHER_CTX_cleanup(ctx);
 #else
-    EVP_CIPHER_CTX_free( ctx );
+    EVP_CIPHER_CTX_free(ctx);
 #endif
 #ifndef OPENR_OBJECT
 #ifdef WIN32
-    LeaveCriticalSection( &t_criticalSection_2_ );
+    LeaveCriticalSection(&t_criticalSection_2_);
 #else
-    pthread_mutex_unlock( &t_mutex_2 );
+    pthread_mutex_unlock(&t_mutex_2);
 #endif
 #endif
     return 0;
@@ -317,15 +320,15 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
   *encryptedMesgLength = oLen + tLen;
   *encryptedMesg = encryptbuffer;
 #if OPENSSL_VERSION_NUMBER < 0x10100000L
-  EVP_CIPHER_CTX_cleanup( ctx );
+  EVP_CIPHER_CTX_cleanup(ctx);
 #else
-  EVP_CIPHER_CTX_free( ctx );
+  EVP_CIPHER_CTX_free(ctx);
 #endif
 #ifndef OPENR_OBJECT
 #ifdef WIN32
-  LeaveCriticalSection( &t_criticalSection_2_ );
+  LeaveCriticalSection(&t_criticalSection_2_);
 #else
-  pthread_mutex_unlock( &t_mutex_2 );
+  pthread_mutex_unlock(&t_mutex_2);
 #endif
 #endif
   return 1;
@@ -334,16 +337,14 @@ int encryptMessage( const unsigned char * origMesg, int origMesgLength, unsigned
 
 namespace pyconnect {
 
-int unpackStrToInt( unsigned char * & str, int & remainingBytes )
-{
+int unpackStrToInt(unsigned char *&str, int &remainingBytes) {
   int num;
 
-  if (str[0] & 0x80) {  // means has extended byte
+  if (str[0] & 0x80) { // means has extended byte
     num = str[1] << 7 | (str[0] & 0x7f);
     str += 2;
     remainingBytes -= 2;
-  }
-  else {
+  } else {
     num = str[0];
     str++;
     remainingBytes--;
@@ -351,29 +352,24 @@ int unpackStrToInt( unsigned char * & str, int & remainingBytes )
   return num;
 }
 
-int packIntToStr( int num, unsigned char * & str )
-{
+int packIntToStr(int num, unsigned char *&str) {
   if (num < 0) {
     return 0;
-  }
-  else if (num < 128) {
-    str[0] = (char) num;
+  } else if (num < 128) {
+    str[0] = (char)num;
     str++;
     return 1;
-  }
-  else if (num < 32768) {
+  } else if (num < 32768) {
     str[0] = (num & 0x7f) | 0x80;
     str[1] = (char)((num & 0x7f80) >> 7); // little endian
     str += 2;
     return 2;
-  }
-  else {
+  } else {
     return 0;
   }
 }
 
-int packedIntLen( int num )
-{
+int packedIntLen(int num) {
   if (num >= 0 && num < 128)
     return 1;
   else if (num < 32768)
@@ -382,257 +378,233 @@ int packedIntLen( int num )
     return 0;
 }
 
-void packString( unsigned char * str, int length, unsigned char * & dataBufPtr,
-    bool extendSize )
-{
-  if (!dataBufPtr || !str) return;
+void packString(unsigned char *str, int length, unsigned char *&dataBufPtr,
+                bool extendSize) {
+  if (!dataBufPtr || !str)
+    return;
 
   if (extendSize) {
-    packIntToStr( length, dataBufPtr );
-  }
-  else {
-    *dataBufPtr = (char) length;
+    packIntToStr(length, dataBufPtr);
+  } else {
+    *dataBufPtr = (char)length;
     dataBufPtr++;
   }
 
   if (length > 0) {
-    memcpy( dataBufPtr, str, length );
+    memcpy(dataBufPtr, str, length);
     dataBufPtr += length;
   }
 }
 
-std::string unpackString( unsigned char * & dataBufPtr, int & remainingBytes,
-    bool extendSize )
-{
-  if (!dataBufPtr) return std::string( "" );
+std::string unpackString(unsigned char *&dataBufPtr, int &remainingBytes,
+                         bool extendSize) {
+  if (!dataBufPtr)
+    return std::string("");
 
   int strLen = 0;
-  char * str = NULL;
+  char *str = NULL;
 
   if (extendSize) {
-    strLen = unpackStrToInt( dataBufPtr, remainingBytes );
-  }
-  else {
-    strLen = (int) *dataBufPtr;
+    strLen = unpackStrToInt(dataBufPtr, remainingBytes);
+  } else {
+    strLen = (int)*dataBufPtr;
     dataBufPtr++;
   }
 
   if (strLen == 0)
-    return std::string( "" );
+    return std::string("");
 
-  str = new char[strLen+1];
-  memcpy( str, dataBufPtr, strLen );
+  str = new char[strLen + 1];
+  memcpy(str, dataBufPtr, strLen);
   str[strLen] = '\0';
   dataBufPtr += strLen;
   remainingBytes -= strLen;
 
-  std::string retVal = std::string( str );
-  delete [] str;
+  std::string retVal = std::string(str);
+  delete[] str;
 
   return retVal;
 }
 
-const PyConnectType::Type PyConnectType::typeName( const char * type )
-{
-  if (strstr( type, "string" ))
+const PyConnectType::Type PyConnectType::typeName(const char *type) {
+  if (strstr(type, "string"))
     return STRING;
-  else if (!strcmp( "int", type ))
+  else if (!strcmp("int", type))
     return INT;
-  else if (!strcmp( "float", type ))
+  else if (!strcmp("float", type))
     return FLOAT;
-  else if (!strcmp( "double", type ))
+  else if (!strcmp("double", type))
     return DOUBLE;
-  else if (!strcmp( "bool", type ))
+  else if (!strcmp("bool", type))
     return BOOL;
-  else if (!strcmp( "void", type ))
+  else if (!strcmp("void", type))
     return PyVOID;
   else
     return COMPOSITE;
 }
 
-const std::string PyConnectType::typeName( const Type type )
-{
+const std::string PyConnectType::typeName(const Type type) {
   switch (type) {
-    case INT:
-      return std::string( "integer" );
-      break;
-    case FLOAT:
-      return std::string( "float" );
-      break;
-    case DOUBLE:
-      return std::string( "double" );
-      break;
-    case STRING:
-      return std::string( "string" );
-      break;
-    case BOOL:
-      return std::string( "boolean" );
-      break;
-    case COMPOSITE:
-      return std::string( "composite object" );
-      break;
-    default:
-      return std::string( "unknown" );
+  case INT:
+    return std::string("integer");
+    break;
+  case FLOAT:
+    return std::string("float");
+    break;
+  case DOUBLE:
+    return std::string("double");
+    break;
+  case STRING:
+    return std::string("string");
+    break;
+  case BOOL:
+    return std::string("boolean");
+    break;
+  case COMPOSITE:
+    return std::string("composite object");
+    break;
+  default:
+    return std::string("unknown");
   }
 }
 
 #ifdef PYTHON_SERVER
-int PyConnectType::validateTypeAndSize( PyObject * obj, Type type )
-{
+int PyConnectType::validateTypeAndSize(PyObject *obj, Type type) {
   if (!obj) {
-    return 0; //just in case we have a NULL pointer
+    return 0; // just in case we have a NULL pointer
   }
 
   switch (type) {
-    case INT:
-      if (PyInt_Check( obj ))
-        return sizeof( int );
-      break;
-    case FLOAT:
-      if (PyFloat_Check( obj ))
-        return sizeof( float );
-      break;
-    case DOUBLE:
-      if (PyFloat_Check( obj ))
-        return sizeof( double );
-      break;
-    case STRING:
+  case INT:
+    if (PyInt_Check(obj))
+      return sizeof(int);
+    break;
+  case FLOAT:
+    if (PyFloat_Check(obj))
+      return sizeof(float);
+    break;
+  case DOUBLE:
+    if (PyFloat_Check(obj))
+      return sizeof(double);
+    break;
+  case STRING:
 #if PY_MAJOR_VERSION >= 3
-      if (PyUnicode_Check( obj )) {
-        int size = (int)strlen(PyUnicode_AsUTF8( obj ));
+    if (PyUnicode_Check(obj)) {
+      int size = (int)strlen(PyUnicode_AsUTF8(obj));
 #else
-      if (PyString_Check( obj )) {
-        int size = (int)PyString_Size( obj );
+    if (PyString_Check(obj)) {
+      int size = (int)PyString_Size(obj);
 #endif
-        return (size + packedIntLen( size ));
-      }
-      break;
-    case BOOL:
-      if (PyBool_Check( obj ))
-        return 1;
-      break;
-    case COMPOSITE:
-      return 0;  //TODO: not support yet
-    default:
-      return 0;
+      return (size + packedIntLen(size));
+    }
+    break;
+  case BOOL:
+    if (PyBool_Check(obj))
+      return 1;
+    break;
+  case COMPOSITE:
+    return 0; // TODO: not support yet
+  default:
+    return 0;
   }
   return 0;
 }
 
-PyObject * PyConnectType::defaultValue( Type type )
-{
+PyObject *PyConnectType::defaultValue(Type type) {
   switch (type) {
-    case INT:
-      return PyInt_FromLong( 0 );
-      break;
-    case FLOAT:
-    case DOUBLE:
-      return PyFloat_FromDouble( 0.0 );
-      break;
-    case STRING:
+  case INT:
+    return PyInt_FromLong(0);
+    break;
+  case FLOAT:
+  case DOUBLE:
+    return PyFloat_FromDouble(0.0);
+    break;
+  case STRING:
 #if PY_MAJOR_VERSION >= 3
-      return PyUnicode_FromString( "" );
+    return PyUnicode_FromString("");
 #else
-      return PyString_FromString( "" );
+    return PyString_FromString("");
 #endif
-      break;
-    case BOOL:
+    break;
+  case BOOL:
+    Py_RETURN_FALSE;
+    break;
+  default:
+    Py_RETURN_NONE;
+  }
+}
+
+void PyConnectType::packToStr(PyObject *arg, Type type,
+                              unsigned char *&dataPtr) {
+  switch (type) {
+  case INT: {
+    int ret = (int)PyInt_AsLong(arg);
+    packToLENumber(ret, dataPtr);
+  } break;
+  case FLOAT: {
+    float ret = (float)PyFloat_AsDouble(arg);
+    packToLENumber(ret, dataPtr);
+  } break;
+  case DOUBLE: {
+    double ret = PyFloat_AsDouble(arg);
+    packToLENumber(ret, dataPtr);
+  } break;
+  case STRING: {
+#if PY_MAJOR_VERSION >= 3
+    PyObject *unicodeobj = PyUnicode_FromObject(arg);
+    char *ret = PyUnicode_AsUTF8(unicodeobj);
+    Py_DECREF(unicodeobj);
+#else
+    char *ret = PyString_AsString(arg);
+#endif
+    int len = (int)strlen(ret);
+    packString((unsigned char *)ret, len, dataPtr, true);
+  } break;
+  case BOOL:
+    (arg == Py_True) ? *dataPtr = 1 : *dataPtr = 0;
+    dataPtr++;
+    break;
+  default:
+    return;
+  }
+}
+
+PyObject *PyConnectType::unpackStr(Type type, unsigned char *&dataPtr,
+                                   int &remainingLength) {
+  switch (type) {
+  case INT: {
+    int ret = 0;
+    unpackLENumber(ret, dataPtr, remainingLength);
+    return PyInt_FromLong(ret);
+  } break;
+  case FLOAT: {
+    float ret = 0.0;
+    unpackLENumber(ret, dataPtr, remainingLength);
+    return PyFloat_FromDouble(ret);
+  } break;
+  case DOUBLE: {
+    double ret = 0.0;
+    unpackLENumber(ret, dataPtr, remainingLength);
+    return PyFloat_FromDouble(ret);
+  } break;
+  case STRING: {
+    std::string ret = unpackString(dataPtr, remainingLength, true);
+#if PY_MAJOR_VERSION >= 3
+    return PyUnicode_FromString(ret.c_str());
+#else
+    return PyString_FromString(ret.c_str());
+#endif
+  } break;
+  case BOOL: {
+    bool ret = ((*dataPtr++ & 0xf) != 0);
+    if (ret)
+      Py_RETURN_TRUE;
+    else
       Py_RETURN_FALSE;
-      break;
-    default:
-      Py_RETURN_NONE;
-  }
-}
-
-void PyConnectType::packToStr( PyObject * arg, Type type, unsigned char * & dataPtr )
-{
-  switch (type) {
-    case INT:
-    {
-      int ret = (int) PyInt_AsLong( arg );
-      packToLENumber( ret, dataPtr );
-    }
-      break;
-    case FLOAT:
-    {
-      float ret = (float) PyFloat_AsDouble( arg );
-      packToLENumber( ret, dataPtr );
-    }
-      break;
-    case DOUBLE:
-    {
-      double ret = PyFloat_AsDouble( arg );
-      packToLENumber( ret, dataPtr );
-    }
-      break;
-    case STRING:
-    {
-#if PY_MAJOR_VERSION >= 3
-      PyObject * unicodeobj = PyUnicode_FromObject( arg );
-      char * ret = PyUnicode_AsUTF8( unicodeobj );
-      Py_DECREF( unicodeobj );
-#else
-      char * ret = PyString_AsString( arg );
-#endif
-      int len = (int)strlen( ret );
-      packString( (unsigned char*)ret, len, dataPtr, true );
-    }
-      break;
-    case BOOL:
-      (arg == Py_True) ? *dataPtr = 1 : *dataPtr = 0;
-      dataPtr++;
-      break;
-    default:
-      return;
-  }
-}
-
-PyObject * PyConnectType::unpackStr( Type type, unsigned char * & dataPtr, int & remainingLength )
-{
-  switch (type) {
-    case INT:
-    {
-      int ret = 0;
-      unpackLENumber( ret, dataPtr, remainingLength );
-      return PyInt_FromLong( ret );
-    }
-      break;
-    case FLOAT:
-    {
-      float ret = 0.0;
-      unpackLENumber( ret, dataPtr, remainingLength );
-      return PyFloat_FromDouble( ret );
-    }
-      break;
-    case DOUBLE:
-    {
-      double ret = 0.0;
-      unpackLENumber( ret, dataPtr, remainingLength );
-      return PyFloat_FromDouble( ret );
-    }
-      break;
-    case STRING:
-    {
-      std::string ret = unpackString( dataPtr, remainingLength, true );
-#if PY_MAJOR_VERSION >= 3
-      return PyUnicode_FromString( ret.c_str() );
-#else
-      return PyString_FromString( ret.c_str() );
-#endif
-    }
-      break;
-    case BOOL:
-    {
-      bool ret = ((*dataPtr++ & 0xf) != 0);
-      if (ret)
-        Py_RETURN_TRUE;
-      else
-        Py_RETURN_FALSE;
-    }
-      break;
-    default:
-      Py_RETURN_NONE;
+  } break;
+  default:
+    Py_RETURN_NONE;
   }
 }
 #endif
-} //namespace pyconnect
+} // namespace pyconnect

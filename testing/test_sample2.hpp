@@ -24,8 +24,8 @@
 #include <ws2tcpip.h>
 #include <wspiapi.h>
 #else
-#include <sys/socket.h>
 #include <netdb.h>
+#include <sys/socket.h>
 #include <sys/time.h>
 #include <unistd.h>
 #endif
@@ -33,8 +33,8 @@
 
 #include <string>
 
-#include "PyConnectWrapper.h"
 #include "PyConnectNetComm.h"
+#include "PyConnectWrapper.h"
 
 using namespace pyconnect;
 
@@ -42,44 +42,45 @@ using namespace pyconnect;
 
 namespace testing {
 
-class TestSample2 : public OObject, FDSetOwner
-{
+class TestSample2 : public OObject, FDSetOwner {
 public:
   TestSample2();
   ~TestSample2();
-  
-  bool enableTimer( int period = 500 ); // period in milliseconds
+
+  bool enableTimer(int period = 500); // period in milliseconds
   void disableTimer();
   void processContinously();
-  void quit() { this->breakLoop_ = true; } 
+  void quit() { this->breakLoop_ = true; }
 
 private:
   bool breakLoop_;
   int maxFD_;
   fd_set masterFDSet_;
 
-  int timeout; //time out period for the timer
-  int timerTriggerNo; //number of time timer got triggered.
+  int timeout;        // time out period for the timer
+  int timerTriggerNo; // number of time timer got triggered.
 
   // timer handling
   bool timerEnabled_;
   struct timeval nextTime_;
-  void checkTimeout( struct timeval & curTime );
+  void checkTimeout(struct timeval &curTime);
 
-  static int compareTimeInMS( struct timeval & timeA, struct timeval & timeB );
-  static void addTimeInMS( struct timeval & time, long msec );
+  static int compareTimeInMS(struct timeval &timeA, struct timeval &timeB);
+  static void addTimeInMS(struct timeval &time, long msec);
 
 public:
   PYCONNECT_NETCOMM_DECLARE;
   PYCONNECT_WRAPPER_DECLARE;
 
-  PYCONNECT_MODULE_DESCRIPTION( "A simple timer program that uses PyConnect framework." );
+  PYCONNECT_MODULE_DESCRIPTION(
+      "A simple timer program that uses PyConnect framework.");
 
-  PYCONNECT_METHOD( enableTimer, "enables the timer with specific timeout period" );
-  PYCONNECT_METHOD( disableTimer, "disable the timer" );
-  PYCONNECT_METHOD( quit, "stop program" );
-  PYCONNECT_RW_ATTRIBUTE( timeout, "timeout period for the timer" );
-  PYCONNECT_RO_ATTRIBUTE( timerTriggerNo, "timer trigger" );
+  PYCONNECT_METHOD(enableTimer,
+                   "enables the timer with specific timeout period");
+  PYCONNECT_METHOD(disableTimer, "disable the timer");
+  PYCONNECT_METHOD(quit, "stop program");
+  PYCONNECT_RW_ATTRIBUTE(timeout, "timeout period for the timer");
+  PYCONNECT_RO_ATTRIBUTE(timerTriggerNo, "timer trigger");
 };
 
 } // namespace testing
